@@ -259,6 +259,7 @@
 	}
 
 	CC.tokens = {
+		buildTrunk,
 		computeConversationMetrics,
 		computeCostAndSavings,
 		computeContextBreakdown,

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sugan's ClaudeCounter HUD & Exporter
 // @namespace    https://github.com/sugan0025/Sugan-s-ClaudeCounter
-// @version      1.1.0
+// @version      1.2.0
 // @description  Single-Card Real-Time Token & Usage HUD with Cat Button in Claude's Input Box and Full Session Thinking & Artifact Exporter
 // @match        https://claude.ai/*
 // @run-at       document-start
@@ -20,9 +20,50 @@
 	CC._ccInternal = CC._ccInternal || {};
 	CC._ccInternal.conversationTrees = CC._ccInternal.conversationTrees || {};
 	CC._ccInternal.currentConversationId = null;
+	CC._ccInternal.currentTokens = { total: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+	CC._ccInternal.currentModel = 'Sonnet 5 High';
 
 	const originalFetch = window.fetch ? window.fetch.bind(window) : null;
 	CC._ccInternal.originalFetch = originalFetch;
+
+	function getTokenizer() {
+		return globalThis.GPTTokenizer_o200k_base || null;
+	}
+
+	function countTokens(text) {
+		if (!text) return 0;
+		const tokenizer = getTokenizer();
+		if (!tokenizer?.countTokens) return Math.ceil(text.length / 3.85);
+		try {
+			return tokenizer.countTokens(text);
+		} catch {
+			return Math.ceil(text.length / 3.85);
+		}
+	}
+
+	function buildTrunk(conversation) {
+		const ROOT_ID = '00000000-0000-4000-8000-000000000000';
+		const messages = Array.isArray(conversation?.chat_messages) ? conversation.chat_messages : [];
+		const byId = new Map();
+		for (const msg of messages) {
+			if (msg?.uuid) byId.set(msg.uuid, msg);
+		}
+
+		const leaf = conversation?.current_leaf_message_uuid;
+		if (!leaf) return messages;
+
+		const trunk = [];
+		let currentId = leaf;
+		while (currentId && currentId !== ROOT_ID) {
+			const msg = byId.get(currentId);
+			if (!msg) break;
+			trunk.push(msg);
+			currentId = msg.parent_message_uuid;
+		}
+
+		trunk.reverse();
+		return trunk;
+	}
 
 	if (originalFetch) {
 		window.fetch = async (...args) => {
@@ -36,6 +77,16 @@
 						if (data?.uuid) {
 							CC._ccInternal.conversationTrees[data.uuid] = data;
 							CC._ccInternal.currentConversationId = data.uuid;
+							
+							const trunk = buildTrunk(data);
+							let total = 0, input = 0, output = 0;
+							for (const msg of trunk) {
+								const t = countTokens(typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.content || ''));
+								if (msg.sender === 'human' || msg.sender === 'user') input += t;
+								else output += t;
+								total += t;
+							}
+							CC._ccInternal.currentTokens = { total, input, output, cacheRead: 0, cacheWrite: 0 };
 						}
 					}).catch(() => {});
 				} catch {}
@@ -290,45 +341,130 @@
 	/* --- 3. Full Session Exporter Engine --- */
 	class ConversationExporter {
 		extractConversation() {
-			const activeId = CC._ccInternal?.currentConversationId || 'session-' + Date.now();
+			const activeId = CC._ccInternal?.currentConversationId || this._getId();
 			const cachedTree = CC._ccInternal?.conversationTrees?.[activeId] || null;
 			let messages = [];
 
 			if (cachedTree && Array.isArray(cachedTree.chat_messages) && cachedTree.chat_messages.length > 0) {
-				messages = cachedTree.chat_messages.map((msg, idx) => ({
-					index: idx + 1,
-					sender: msg.sender === 'human' ? 'Human' : 'Claude',
-					text: msg.text || '',
-					thinking: msg.thinking || '',
-					artifacts: []
-				}));
-			} else {
-				const domMessages = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
-				domMessages.forEach((el, idx) => {
-					messages.push({
-						index: idx + 1,
-						sender: el.getAttribute('data-testid') === 'user-message' ? 'Human' : 'Claude',
-						text: el.innerText.trim(),
-						thinking: el.querySelector('details, [data-testid="thinking-block"]')?.innerText.trim() || '',
-						artifacts: []
-					});
-				});
+				const trunk = buildTrunk(cachedTree);
+				messages = this._parseApi(trunk.length > 0 ? trunk : cachedTree.chat_messages);
 			}
 
+			if (!messages || messages.length === 0) {
+				messages = this._scrapeDom();
+			}
+
+			const title = cachedTree?.name || cachedTree?.title || document.title.replace(' - Claude', '') || 'Claude Session';
+			const tokenStats = CC._ccInternal?.currentTokens || { total: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+			const model = CC._ccInternal?.currentModel || detectModel();
+
 			return {
-				title: cachedTree?.name || document.title || 'Claude Session',
+				id: activeId,
+				title,
+				model,
 				exportedAt: new Date().toISOString(),
+				tokenStats,
 				messages
 			};
 		}
 
+		_getId() {
+			const m = window.location.pathname.match(/\/chat\/([a-zA-Z0-9-]+)/);
+			return m ? m[1] : 'session-' + Date.now();
+		}
+
+		_parseApi(raw) {
+			return raw.map((msg, index) => {
+				const isHuman = msg.sender === 'human' || msg.sender === 'user';
+				let text = typeof msg.text === 'string' ? msg.text : '';
+				let thinking = typeof msg.thinking === 'string' ? msg.thinking : '';
+				let artifacts = [];
+
+				if (Array.isArray(msg.content)) {
+					for (const part of msg.content) {
+						if (!part) continue;
+						if (part.type === 'text') text += (text ? '\n\n' : '') + part.text;
+						else if (part.type === 'thinking' || part.type === 'redacted_thinking') thinking += (thinking ? '\n\n' : '') + (part.thinking || part.text || part.data || '');
+						else if (part.type === 'tool_use') {
+							artifacts.push({
+								identifier: part.input?.id || `artifact-${index + 1}`,
+								title: part.input?.title || `Tool: ${part.name || 'execution'}`,
+								type: part.input?.type || 'code',
+								content: part.input?.content || (typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2))
+							});
+						}
+					}
+				}
+
+				if (!thinking && text.includes('<thinking>')) {
+					const m = text.match(/<thinking>([\s\S]*?)<\/thinking>/);
+					if (m) {
+						thinking = m[1].trim();
+						text = text.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+					}
+				}
+
+				return {
+					index: index + 1,
+					sender: isHuman ? 'Human' : 'Claude',
+					text: text.trim(),
+					thinking: thinking.trim(),
+					artifacts,
+					createdAt: msg.created_at || new Date().toISOString(),
+					truncated: msg.stop_reason === 'max_tokens' || Boolean(msg.truncated)
+				};
+			});
+		}
+
+		_scrapeDom() {
+			const turns = document.querySelectorAll('[class*="ConversationItem"], [class*="chat-turn"], [class*="message-row"], [data-testid="chat-message-row"], [data-testid="user-message"], [data-testid="assistant-message"]');
+			const messages = [];
+
+			turns.forEach((turn, idx) => {
+				const isUser = turn.matches?.('[data-testid="user-message"]') || turn.querySelector?.('[data-testid="user-message"]') || turn.getAttribute?.('data-message-author-role') === 'user' || turn.classList?.contains('font-user-message');
+				
+				let thinking = '';
+				const th = turn.querySelector?.('[data-testid="thinking-block"], details, [class*="thinking"], [class*="Thinking"]');
+				if (th) thinking = th.innerText.trim();
+
+				let text = turn.innerText?.trim() || '';
+				if (thinking && text.includes(thinking)) text = text.replace(thinking, '').trim();
+
+				if (text || thinking) {
+					messages.push({
+						index: idx + 1,
+						sender: isUser ? 'Human' : 'Claude',
+						text,
+						thinking,
+						artifacts: [],
+						createdAt: new Date().toISOString()
+					});
+				}
+			});
+
+			return messages;
+		}
+
 		exportToMarkdown() {
 			const data = this.extractConversation();
-			let md = `# ${data.title}\n\n> Exported At: ${new Date().toLocaleString()}\n\n---\n\n`;
+			let md = `# ${data.title}\n\n`;
+			md += `> **Model**: ${data.model}  \n`;
+			md += `> **Exported At**: ${new Date(data.exportedAt).toLocaleString()}  \n`;
+			md += `> **Total Tokens**: ${Number(data.tokenStats.total || 0).toLocaleString()} tokens  \n`;
+			md += `> **Input**: ${Number(data.tokenStats.input || 0).toLocaleString()} | **Output**: ${Number(data.tokenStats.output || 0).toLocaleString()} | **Cache Read**: ${Number(data.tokenStats.cacheRead || 0).toLocaleString()}\n\n`;
+			md += `---\n\n`;
+
 			data.messages.forEach((msg) => {
 				md += `### ${msg.sender === 'Human' ? '👤 Human' : '🤖 Claude'}\n\n`;
-				if (msg.thinking) md += `#### 💭 Extended Thinking:\n> ${msg.thinking.replace(/\n/g, '\n> ')}\n\n`;
-				md += `${msg.text}\n\n---\n\n`;
+				if (msg.thinking) md += `#### 💭 Extended Thinking Process:\n> ${msg.thinking.replace(/\n/g, '\n> ')}\n\n`;
+				if (msg.text) md += `${msg.text}\n\n`;
+				if (msg.artifacts && msg.artifacts.length > 0) {
+					msg.artifacts.forEach((art, aIdx) => {
+						md += `#### 📦 Artifact ${aIdx + 1}: ${art.title}\n\`\`\`\n${art.content}\n\`\`\`\n\n`;
+					});
+				}
+				if (msg.truncated) md += `> ⚠️ *[Response truncated due to token limit]*\n\n`;
+				md += `---\n\n`;
 			});
 
 			const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
@@ -356,7 +492,7 @@
 
 	CC.Exporter = new ConversationExporter();
 
-	/* --- 4. Single Clean Usage HUD & Cat Button Controller --- */
+	/* --- 4. HUD & Cat Button Controller --- */
 	let catButton = null;
 	let sideHud = null;
 	let hudOpen = false;
@@ -366,7 +502,6 @@
 	let weeklyUtilization = 0.34;
 	let sessionResetMs = Date.now() + 3.7 * 60 * 60 * 1000;
 	let weeklyResetMs = Date.now() + 4.5 * 24 * 60 * 60 * 1000;
-	let cachedUntilMs = Date.now() + 3.5 * 60 * 1000;
 
 	function formatReset(ms) {
 		if (!ms) return 'Active';
@@ -393,7 +528,7 @@
 	}
 
 	function scrapeTokens() {
-		const messageEls = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
+		const messageEls = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message, [class*="ConversationItem"]');
 		let chars = 0;
 		messageEls.forEach(el => chars += el.innerText.length);
 		const inputEl = document.querySelector('textarea, [contenteditable="true"], .ProseMirror');
@@ -410,7 +545,8 @@
 		}
 
 		const modelName = detectModel();
-		const tokensUsed = currentTokens;
+		CC._ccInternal.currentModel = modelName;
+		const tokensUsed = CC._ccInternal.currentTokens.total || currentTokens;
 		const usedPct = Math.min(100, Math.round((tokensUsed / 200000) * 100 * 10) / 10);
 		const sessPct = Math.min(100, Math.round(sessionUtilization * 100 * 10) / 10);
 		const weekPct = Math.min(100, Math.round(weeklyUtilization * 100 * 10) / 10);

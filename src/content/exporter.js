@@ -13,31 +13,54 @@
 		}
 
 		/**
-		 * Extracts raw conversation messages from memory, intercepted API response, or DOM fallback.
+		 * Extracts conversation messages from memory, intercepted API trunk, or DOM fallback.
 		 */
 		extractConversation() {
 			const activeConversationId = CC._ccInternal?.currentConversationId || this._getConversationIdFromUrl();
-			const cachedTree = CC._ccInternal?.conversationTrees?.[activeConversationId] || null;
+			const cachedTree = (CC._ccInternal?.conversationTrees && activeConversationId) 
+				? CC._ccInternal.conversationTrees[activeConversationId] 
+				: null;
 
 			let messages = [];
 
 			if (cachedTree && Array.isArray(cachedTree.chat_messages) && cachedTree.chat_messages.length > 0) {
-				messages = this._parseApiMessages(cachedTree.chat_messages);
-			} else {
-				// Fallback to scraping rendered DOM (handles ongoing or truncated sessions)
+				// Use active linear trunk (walks current_leaf_message_uuid to avoid branching duplicates)
+				const trunk = CC.tokens?.buildTrunk ? CC.tokens.buildTrunk(cachedTree) : cachedTree.chat_messages;
+				messages = this._parseApiMessages(trunk.length > 0 ? trunk : cachedTree.chat_messages);
+			}
+
+			// If API tree wasn't captured or produced no messages, fallback to live DOM scraping
+			if (!messages || messages.length === 0) {
 				messages = this._scrapeDomMessages();
 			}
 
 			const title = this._getConversationTitle(cachedTree);
-			const tokenStats = CC._ccInternal?.currentTokens || {
-				total: 0,
-				input: 0,
-				output: 0,
-				cacheRead: 0,
-				cacheWrite: 0
-			};
+			
+			// Extract real token stats
+			let tokenStats = CC._ccInternal?.currentTokens;
+			if (!tokenStats || (!tokenStats.total && CC._ccInternal?.currentMetrics)) {
+				const m = CC._ccInternal.currentMetrics;
+				tokenStats = {
+					total: m?.totalTokens || 0,
+					input: m?.inputTokens || 0,
+					output: m?.outputTokens || 0,
+					cacheRead: m?.cacheReadTokens || 0,
+					cacheWrite: m?.cacheWriteTokens || 0
+				};
+			}
+			if (!tokenStats || !tokenStats.total) {
+				// Estimate from scraped tokens if API metrics not available
+				const estTokens = CC.tokens?.countTokens ? messages.reduce((acc, msg) => acc + CC.tokens.countTokens(msg.text + (msg.thinking || '')), 0) : 0;
+				tokenStats = {
+					total: estTokens,
+					input: Math.floor(estTokens * 0.4),
+					output: Math.floor(estTokens * 0.6),
+					cacheRead: 0,
+					cacheWrite: 0
+				};
+			}
 
-			const model = CC._ccInternal?.currentModel || 'Claude 3.7 Sonnet';
+			const model = CC._ccInternal?.currentModel || cachedTree?.model || 'Sonnet 5 High';
 
 			return {
 				id: activeConversationId,
@@ -58,35 +81,67 @@
 			if (cachedTree?.name) return cachedTree.name;
 			if (cachedTree?.title) return cachedTree.title;
 
-			const titleEl = document.querySelector('[data-testid="chat-title"]') || document.querySelector('header h1') || document.querySelector('title');
+			const titleEl = document.querySelector('[data-testid="chat-title"], header h1, title, .chat-title');
 			if (titleEl) {
-				const text = titleEl.textContent.replace(' - Claude', '').trim();
-				if (text) return text;
+				const text = (titleEl.textContent || titleEl.innerText || '').replace(' - Claude', '').trim();
+				if (text && text !== 'Claude') return text;
 			}
 			return 'Claude Session';
 		}
 
 		_parseApiMessages(rawMessages) {
+			if (!Array.isArray(rawMessages)) return [];
+
 			return rawMessages.map((msg, index) => {
-				const sender = msg.sender === 'human' ? 'Human' : 'Claude';
-				let text = msg.text || '';
-				let thinking = msg.thinking || '';
+				const isHuman = msg.sender === 'human' || msg.sender === 'user';
+				const sender = isHuman ? 'Human' : 'Claude';
+				let text = typeof msg.text === 'string' ? msg.text : '';
+				let thinking = typeof msg.thinking === 'string' ? msg.thinking : '';
 				let artifacts = [];
 
-				// Check content array if structured
+				// Parse structured content array (Claude API format)
 				if (Array.isArray(msg.content)) {
 					for (const part of msg.content) {
-						if (part.type === 'text') {
-							text += (text ? '\n' : '') + part.text;
-						} else if (part.type === 'thinking') {
-							thinking += (thinking ? '\n' : '') + (part.thinking || part.text || '');
-						} else if (part.type === 'tool_use' && part.name === 'artifacts') {
-							artifacts.push({
-								identifier: part.input?.id || `artifact-${index}`,
-								title: part.input?.title || 'Generated Artifact',
-								type: part.input?.type || 'code',
-								content: part.input?.content || ''
-							});
+						if (!part || typeof part !== 'object') continue;
+
+						if (part.type === 'text' && typeof part.text === 'string') {
+							text += (text ? '\n\n' : '') + part.text;
+						} else if ((part.type === 'thinking' || part.type === 'redacted_thinking')) {
+							const thoughtText = part.thinking || part.text || part.data || '';
+							if (thoughtText) {
+								thinking += (thinking ? '\n\n' : '') + thoughtText;
+							}
+						} else if (part.type === 'tool_use') {
+							if (part.name === 'artifacts' || part.name?.includes('artifact')) {
+								artifacts.push({
+									identifier: part.input?.id || `artifact-${index + 1}`,
+									title: part.input?.title || 'Generated Artifact',
+									type: part.input?.type || part.input?.language || 'code',
+									content: part.input?.content || (typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2))
+								});
+							} else {
+								// General tool use
+								artifacts.push({
+									identifier: `tool-${part.name || 'use'}-${index + 1}`,
+									title: `Tool: ${part.name || 'execution'}`,
+									type: 'tool_use',
+									content: typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2)
+								});
+							}
+						} else if (part.type === 'tool_result') {
+							if (part.content) {
+								const contentStr = typeof part.content === 'string' ? part.content : JSON.stringify(part.content, null, 2);
+								text += (text ? '\n\n' : '') + `**Tool Result:**\n\`\`\`\n${contentStr}\n\`\`\``;
+							}
+						}
+					}
+				}
+
+				// Parse attachments (e.g. extracted text from uploads)
+				if (Array.isArray(msg.attachments)) {
+					for (const att of msg.attachments) {
+						if (att?.extracted_content) {
+							text += (text ? '\n\n' : '') + `**Attachment (${att.file_name || 'file'}):**\n${att.extracted_content}`;
 						}
 					}
 				}
@@ -100,8 +155,8 @@
 					}
 				}
 
-				// Extract inline <antArtifact> tags if present
-				if (artifacts.length === 0 && text.includes('<antArtifact')) {
+				// Extract inline <antArtifact> tags if present in text
+				if (text.includes('<antArtifact')) {
 					const regex = /<antArtifact\s+identifier="([^"]*)"\s+type="([^"]*)"(?:\s+title="([^"]*)")?[^>]*>([\s\S]*?)<\/antArtifact>/g;
 					let m;
 					while ((m = regex.exec(text)) !== null) {
@@ -117,8 +172,8 @@
 				return {
 					index: index + 1,
 					sender,
-					text,
-					thinking,
+					text: text.trim(),
+					thinking: thinking.trim(),
 					artifacts,
 					createdAt: msg.created_at || new Date().toISOString(),
 					truncated: msg.stop_reason === 'max_tokens' || Boolean(msg.truncated)
@@ -127,62 +182,92 @@
 		}
 
 		_scrapeDomMessages() {
-			const messageEls = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
+			const userSelector = CC.DOM?.USER_MESSAGES || '[data-testid="user-message"], .font-user-message, [data-message-author-role="user"]';
+			const assistantSelector = CC.DOM?.ASSISTANT_MESSAGES || '[data-testid="assistant-message"], .font-claude-message, [data-message-author-role="assistant"], div[data-is-streaming]';
+
+			// First, attempt to match turn containers for 100% paired ordering
+			const turnContainers = document.querySelectorAll('[class*="ConversationItem"], [class*="chat-turn"], [class*="message-row"], [data-testid="chat-message-row"]');
 			const messages = [];
 
-			if (messageEls.length === 0) {
-				// General fallback
-				const turnContainers = document.querySelectorAll('[class*="ConversationItem"], [class*="chat-turn"]');
+			if (turnContainers.length > 0) {
 				turnContainers.forEach((turn, idx) => {
-					const isHuman = turn.querySelector('[data-testid="user-message"]') || turn.textContent.includes('You:');
-					messages.push({
-						index: idx + 1,
-						sender: isHuman ? 'Human' : 'Claude',
-						text: turn.innerText.trim(),
-						thinking: '',
-						artifacts: [],
-						createdAt: new Date().toISOString()
+					const isUser = turn.querySelector(userSelector) || turn.getAttribute('data-message-author-role') === 'user' || turn.classList.contains('font-user-message');
+					const sender = isUser ? 'Human' : 'Claude';
+
+					let thinking = '';
+					const thinkingEl = turn.querySelector('[data-testid="thinking-block"], details, [class*="thinking"], [class*="Thinking"]');
+					if (thinkingEl) {
+						thinking = thinkingEl.innerText.trim();
+					}
+
+					const artifacts = [];
+					const artifactEls = turn.querySelectorAll('[data-testid="artifact-button"], [class*="artifact"], pre code');
+					artifactEls.forEach((art, aIdx) => {
+						artifacts.push({
+							identifier: `artifact-${idx + 1}-${aIdx + 1}`,
+							title: art.getAttribute('data-title') || art.getAttribute('data-artifact-title') || `Artifact ${aIdx + 1}`,
+							type: art.getAttribute('data-type') || 'code',
+							content: art.innerText.trim()
+						});
 					});
+
+					let text = turn.innerText.trim();
+					if (thinking && text.includes(thinking)) {
+						text = text.replace(thinking, '').trim();
+					}
+
+					if (text || thinking || artifacts.length > 0) {
+						messages.push({
+							index: idx + 1,
+							sender,
+							text,
+							thinking,
+							artifacts,
+							createdAt: new Date().toISOString()
+						});
+					}
 				});
-				return messages;
+
+				if (messages.length > 0) return messages;
 			}
 
-			messageEls.forEach((el, idx) => {
-				const isHuman = el.getAttribute('data-testid') === 'user-message' || el.classList.contains('font-user-message');
+			// Fallback: Query all user and assistant elements directly
+			const allElements = document.querySelectorAll(`${userSelector}, ${assistantSelector}`);
+			allElements.forEach((el, idx) => {
+				const isHuman = el.matches(userSelector) || el.getAttribute('data-message-author-role') === 'user' || el.classList.contains('font-user-message');
 				
-				// Extract Thinking blocks (often inside details or specialized thinking containers)
 				let thinking = '';
-				const thinkingEl = el.querySelector('[data-testid="thinking-block"], details, [class*="thinking"]');
+				const thinkingEl = el.querySelector('[data-testid="thinking-block"], details, [class*="thinking"], [class*="Thinking"]');
 				if (thinkingEl) {
 					thinking = thinkingEl.innerText.trim();
 				}
 
-				// Extract Artifacts / Code snippets
 				const artifacts = [];
 				const artifactEls = el.querySelectorAll('[data-testid="artifact-button"], pre code, [class*="artifact"]');
 				artifactEls.forEach((art, aIdx) => {
 					artifacts.push({
 						identifier: `artifact-${idx + 1}-${aIdx + 1}`,
-						title: art.getAttribute('data-title') || art.getAttribute('data-artifact-title') || `Artifact ${aIdx + 1}`,
-						type: art.getAttribute('data-type') || 'code',
+						title: art.getAttribute('data-title') || `Artifact ${aIdx + 1}`,
+						type: 'code',
 						content: art.innerText.trim()
 					});
 				});
 
-				// Clone text content without thinking block text
 				let text = el.innerText.trim();
 				if (thinking && text.includes(thinking)) {
 					text = text.replace(thinking, '').trim();
 				}
 
-				messages.push({
-					index: idx + 1,
-					sender: isHuman ? 'Human' : 'Claude',
-					text,
-					thinking,
-					artifacts,
-					createdAt: new Date().toISOString()
-				});
+				if (text || thinking || artifacts.length > 0) {
+					messages.push({
+						index: idx + 1,
+						sender: isHuman ? 'Human' : 'Claude',
+						text,
+						thinking,
+						artifacts,
+						createdAt: new Date().toISOString()
+					});
+				}
 			});
 
 			return messages;
@@ -198,8 +283,8 @@
 			let md = `# ${data.title}\n\n`;
 			md += `> **Model**: ${data.model}  \n`;
 			md += `> **Exported At**: ${new Date(data.exportedAt).toLocaleString()}  \n`;
-			md += `> **Total Tokens**: ${data.tokenStats.total.toLocaleString()} tokens  \n`;
-			md += `> **Input**: ${data.tokenStats.input.toLocaleString()} | **Output**: ${data.tokenStats.output.toLocaleString()} | **Cache Read**: ${data.tokenStats.cacheRead.toLocaleString()}\n\n`;
+			md += `> **Total Tokens**: ${Number(data.tokenStats.total || 0).toLocaleString()} tokens  \n`;
+			md += `> **Input**: ${Number(data.tokenStats.input || 0).toLocaleString()} | **Output**: ${Number(data.tokenStats.output || 0).toLocaleString()} | **Cache Read**: ${Number(data.tokenStats.cacheRead || 0).toLocaleString()}\n\n`;
 			md += `---\n\n`;
 
 			data.messages.forEach((msg) => {

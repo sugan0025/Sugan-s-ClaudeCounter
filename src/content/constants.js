@@ -5,10 +5,12 @@
 
 	CC.DOM = Object.freeze({
 		CHAT_MENU_TRIGGER: '[data-testid="chat-menu-trigger"]',
-		MODEL_SELECTOR_DROPDOWN: '[data-testid="model-selector-dropdown"]',
+		MODEL_SELECTOR_DROPDOWN: '[data-testid="model-selector-dropdown"], [class*="model-selector"], [aria-label*="Model"]',
 		CHAT_PROJECT_WRAPPER: '.chat-project-wrapper',
 		CHAT_INPUT_CONTAINER: '[data-testid="chat-input-row"], [class*="chat-input"], form fieldset',
-		BRIDGE_SCRIPT_ID: 'cc-bridge-script'
+		BRIDGE_SCRIPT_ID: 'cc-bridge-script',
+		USER_MESSAGES: '[data-testid="user-message"], .font-user-message, [data-message-author-role="user"], div[class*="font-user"]',
+		ASSISTANT_MESSAGES: '[data-testid="assistant-message"], .font-claude-message, [data-message-author-role="assistant"], div[class*="font-claude"], div.font-claude-message, div:has(> .font-claude-message), div[data-is-streaming], [class*="standard-message"]'
 	});
 
 	CC.CONST = Object.freeze({

@@ -97,22 +97,28 @@
 
 		_detectActiveModel() {
 			const modelEl = document.querySelector('[data-testid="model-selector-dropdown"], [class*="model-selector"], [aria-label*="Model"], button:has(span)');
+			let model = 'Sonnet 5 High';
 			if (modelEl) {
 				const text = modelEl.innerText.trim();
 				if (text && (text.includes('Sonnet') || text.includes('Opus') || text.includes('Haiku') || text.includes('Claude'))) {
-					// Clean up arrows/extra icons
-					return text.split('\n')[0].replace('ˇ', '').trim();
+					model = text.split('\n')[0].replace('ˇ', '').trim();
 				}
 			}
-			return 'Sonnet 5 High';
+			CC._ccInternal = CC._ccInternal || {};
+			CC._ccInternal.currentModel = model;
+			return model;
 		}
 
 		_scrapeLiveTokens() {
-			// Scrape all text on the chat screen to guarantee 100% real-time tracking
-			const messageEls = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
-			let totalChars = 0;
-			let lastMsgDate = null;
+			// Scrape all text on the chat screen using robust selectors
+			const selector = `${CC.DOM?.USER_MESSAGES || '[data-testid="user-message"], .font-user-message'}, ${CC.DOM?.ASSISTANT_MESSAGES || '[data-testid="assistant-message"], .font-claude-message'}`;
+			let messageEls = document.querySelectorAll(selector);
+			
+			if (messageEls.length === 0) {
+				messageEls = document.querySelectorAll('[class*="ConversationItem"], [class*="chat-turn"], [class*="message-row"], [data-testid="chat-message-row"], [data-message-author-role]');
+			}
 
+			let totalChars = 0;
 			messageEls.forEach((el) => {
 				totalChars += el.innerText.length;
 			});
@@ -124,7 +130,6 @@
 			}
 
 			if (totalChars > 0) {
-				// 1 token ≈ 3.8 to 4 characters for Claude o200k/bpe tokenizer
 				return Math.ceil(totalChars / 3.85);
 			}
 			return this.currentTokens;

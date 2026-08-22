@@ -202,12 +202,31 @@
 		ui.setPendingCache(true);
 	}
 
+	CC._ccInternal = CC._ccInternal || {};
+	CC._ccInternal.conversationTrees = CC._ccInternal.conversationTrees || {};
+	CC._ccInternal.currentConversationId = null;
+	CC._ccInternal.currentTokens = { total: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+	CC._ccInternal.currentModel = 'Sonnet 5 High';
+
 	async function handleConversationPayload({ orgId, conversationId, data }) {
 		if (!conversationId || conversationId !== currentConversationId) return;
 		updateOrgIdIfNeeded(orgId);
 		if (!data) return;
 
+		// Store raw conversation tree in shared internal cache for Exporter
+		CC._ccInternal.conversationTrees[conversationId] = data;
+		CC._ccInternal.currentConversationId = conversationId;
+
 		const metrics = await CC.tokens.computeConversationMetrics(data);
+		CC._ccInternal.currentMetrics = metrics;
+		CC._ccInternal.currentTokens = {
+			total: metrics.totalTokens,
+			input: metrics.inputTokens,
+			output: metrics.outputTokens,
+			cacheRead: metrics.cacheReadTokens,
+			cacheWrite: metrics.cacheWriteTokens
+		};
+
 		ui.setConversationMetrics({ totalTokens: metrics.totalTokens, cachedUntil: metrics.cachedUntil });
 	}
 
@@ -222,6 +241,7 @@
 
 	async function handleUrlChange() {
 		currentConversationId = getConversationId();
+		CC._ccInternal.currentConversationId = currentConversationId;
 
 		// Attach usage line and header independently - they have different anchor elements
 		// and CHAT_MENU_TRIGGER doesn't exist on home/new pages
