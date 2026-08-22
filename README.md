@@ -1,10 +1,10 @@
 # 🐱 Sugan's ClaudeCounter & Telemetry HUD
 
-> **Ultra-Modern Glassmorphic AI Telemetry HUD, Real-Time Token Breakdown, 5-Hour Rate Limit Forecasting, and Resilient Chat Exporter (Thinking Process & Artifacts) for Claude.ai.**
+> **Pure Frosted Liquid Glass Telemetry HUD, Real-Time Token Breakdown, 5-Hour & 7-Day Limit Tracking, Dynamic Typing Cat, and Resilient Full Session Exporter (Thinking Process, Created Files & Artifacts) for Claude.ai.**
 
 <div align="center">
 
-<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:E28743,100:1a1b27&height=180&section=header&text=Sugan's%20ClaudeCounter%20HUD&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=AI%20Telemetry%20%7C%20Rate%20Limits%20%7C%20Thinking%20&%20Artifact%20Exporter&descAlignY=55&descSize=14&descColor=cccccc"/>
+<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:E28743,100:1a1b27&height=180&section=header&text=Sugan's%20ClaudeCounter%20HUD&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=AI%20Telemetry%20%7C%20Frosted%20Liquid%20Glass%20%7C%20Thinking%20&%20Artifact%20Exporter&descAlignY=55&descSize=14&descColor=cccccc"/>
 
 <!-- Badges -->
 <a href="#">
@@ -16,11 +16,15 @@
 </a>
 &nbsp;
 <a href="#">
-  <img src="https://img.shields.io/badge/Supports-Claude_3.7_Sonnet-38BDF8?style=for-the-badge&logoColor=white" alt="Claude 3.7" />
+  <img src="https://img.shields.io/badge/Supports-Sonnet_5_High-38BDF8?style=for-the-badge&logoColor=white" alt="Sonnet 5 High" />
 </a>
 &nbsp;
 <a href="#">
-  <img src="https://img.shields.io/badge/Export-Thinking_+_Artifacts-10B981?style=for-the-badge&logoColor=white" alt="Export" />
+  <img src="https://img.shields.io/badge/Design-Frosted_Liquid_Glass-10B981?style=for-the-badge&logoColor=white" alt="Liquid Glass" />
+</a>
+&nbsp;
+<a href="#">
+  <img src="https://img.shields.io/badge/Export-Thinking_+_Files-EF4444?style=for-the-badge&logoColor=white" alt="Export" />
 </a>
 
 </div>
@@ -29,43 +33,40 @@
 
 ## 🌟 Key Features
 
-### 1. 🐱 Working Cat Telemetry Button in Chat Input
-- Seamlessly docked inside the Claude.ai message input bar without shifting or interfering with chat layout.
-- Click to smoothly slide in the 3-tabbed frosted glass HUD.
+### 1. 🐱 Dynamic Interactive Typing Cat in Chat Input
+- **Docked Right Next to `+`**: Perfectly aligned in Claude's prompt box without shifting or drifting when attaching files or typing long drafts.
+- **Dynamic State Machine**:
+  - 😴 **Calm Static Pose (Idle)**: Sits quietly at its desk when there is no activity.
+  - ⌨️ **Fast Typing Animation (Active)**: Starts fast typing whenever you type in the input box or whenever Claude is writing / thinking!
+  - ⏳ Smoothly returns to idle 2.5s after activity ends.
 
-### 2. 📊 3-Card Glassmorphism Telemetry HUD
-- 🟧 **/usage (Account Level)**:
-  - Plan type (`Pro` / `Max` / `Team`)
-  - 5-Hour rolling window rate limit with unrounded SSE precision (`1,247 / 2,000`)
-  - Real-time countdown timer (`Resets in 3h 42m`)
-  - 5-Minute sliding cache TTL timer with warning pulse (<60s)
-  - Estimated dollar cost ($) & prompt caching savings
-- 🟪 **/stats (Historical Trends)**:
-  - 7-Day Activity Heatmap matrix (multi-level density blocks)
-  - Total tokens burned, session count, streak counter, and favorite model
-- 🟦 **/context (Current Session)**:
-  - Context partition breakdown (System prompt %, Project Memory %, Messages %, Free Space %)
-  - Live token count gauge (`51k / 200k tokens - 26%`)
+### 2. 🧊 Pure Frosted Liquid Glass Telemetry HUD
+- **Single Clean Usage Card**: Deep acrylic background blur (`36px saturate(210%)`), specular rim lighting, and luminous glowing neon meters.
+- **Dynamic Model Auto-Detection**: Automatically detects active models like `Sonnet 5 High`, `Claude 3.7 Sonnet`, `Opus`, or `Haiku`.
+- **💬 Current Conversation**: Real-time token consumption (`28.4k / 200k`) + 5-minute sliding cache TTL countdown with live warning indicator.
+- **⏱️ 5-Hour Session Limit**: Rolling window rate limit percentage (`90% - Resets in 4h 16m`).
+- **📅 7-Day Weekly Usage**: 7-Day rolling period utilization (`3% - Resets in 5d 4h`).
 
-### 3. 📥 Resilient Session Exporter (Thinking + Artifacts)
+### 3. 📥 Resilient Session Exporter (Thinking Process, Created Files & Artifacts)
 - Exports complete chat history even if the model stopped mid-generation or ran out of tokens!
-- **Extended Thinking**: Preserves full reasoning traces in clean blockquotes.
-- **Artifacts**: Extracts all code files, SVGs, HTML, and Markdown artifacts with syntax tags.
-- Exports to clean **Markdown (.md)** or structured **JSON (.json)** with 1 click.
+- **💭 Extended Thinking**: Full chain-of-thought reasoning traces preserved in formatted blockquotes.
+- **📄 Created Files & Tools**: Extracts sandboxed file creation (`create_file`, `write_file`, `file_editor`, `text_editor`), code executions (`bash`, `repl`), and classic UI artifacts with original file paths and full contents.
+- **Accurate Telemetry Header**: Injects active model, total token counts, input/output/cache stats, and timestamp.
+- Exports to clean **Markdown (.md)** or structured **JSON (.json)** in 1 click.
 
 ---
 
 ## 🚀 Installation
 
-### 1. Chrome / Edge / Brave (Developer Mode)
+### 1. Chrome / Edge / Brave (Unpacked Extension)
 1. Clone or download this repository:
    ```bash
    git clone https://github.com/sugan0025/Sugan-s-ClaudeCounter.git
    ```
 2. Open `chrome://extensions/` in your browser.
 3. Enable **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select this directory (`sugans-claudecounter`).
-5. Open [claude.ai](https://claude.ai) — look for the 🐱 **Telemetry** button in your input bar!
+4. Click **Load unpacked** and select the `sugans-claudecounter` directory.
+5. Open [claude.ai](https://claude.ai) — look for the 🐱 **Cat** button right next to `+` in your input bar!
 
 ### 2. Tampermonkey / Violentmonkey (Userscript)
 1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/).
@@ -75,14 +76,15 @@
 
 ## 💻 Live Web Simulator
 
-Open `index.html` in any browser to test and interact with the live telemetry HUD, adjust token sliders, simulate rate limits, and test chat exports without opening claude.ai.
+Open `index.html` in any browser to test and interact with the live telemetry HUD, pure frosted liquid glass design, dynamic typing cat, and chat export without opening claude.ai.
 
 ---
 
 ## 🛡️ Privacy & Security
 
-- **100% Local**: All token counting and telemetry calculations happen client-side inside your browser.
-- **Zero Third-Party Tracking**: No external servers, telemetry collectors, or analytics endpoints.
+- **100% Client-Side**: All token scraping, calculations, and exports happen locally inside your browser.
+- **XSS Sanitized**: Safe DOM rendering and Unicode-safe filename sanitization.
+- **Zero Third-Party Tracking**: No external telemetry servers or data collectors.
 
 ---
 
