@@ -282,6 +282,59 @@
 			}
 		}
 
+		tick() {
+			const liveTokens = this._scrapeLiveTokens();
+			if (liveTokens > 0) {
+				this.currentTokens = liveTokens;
+			}
+			this.attachCatButton();
+			if (this.hudOpen) {
+				this._renderHudContent();
+			}
+		}
+
+		setUsage(normalized) {
+			if (!normalized) return;
+			if (normalized.five_hour) {
+				const u = normalized.five_hour.utilization;
+				this.sessionUtilization = u > 1 ? u / 100 : u;
+				if (normalized.five_hour.resets_at) {
+					this.sessionResetMs = Date.parse(normalized.five_hour.resets_at);
+				}
+			}
+			if (normalized.seven_day) {
+				const u = normalized.seven_day.utilization;
+				this.weeklyUtilization = u > 1 ? u / 100 : u;
+				if (normalized.seven_day.resets_at) {
+					this.weeklyResetMs = Date.parse(normalized.seven_day.resets_at);
+				}
+			}
+			if (this.hudOpen) this._renderHudContent();
+		}
+
+		setConversationMetrics(metrics) {
+			if (!metrics) return;
+			if (typeof metrics.totalTokens === 'number' && metrics.totalTokens > 0) {
+				this.currentTokens = metrics.totalTokens;
+			}
+			if (metrics.cachedUntil) {
+				this.cachedUntilMs = metrics.cachedUntil;
+			}
+			if (this.hudOpen) this._renderHudContent();
+		}
+
+		setPendingCache(pending) {
+			this.pendingCache = Boolean(pending);
+		}
+
+		attachHeader() {
+			this.attachCatButton();
+		}
+
+		attachUsageLine() {
+			this.attachCatButton();
+		}
+
 		updateTokens(totalTokens) {
 			this.currentTokens = totalTokens;
 			if (this.hudOpen) this._renderHudContent();
@@ -297,4 +350,6 @@
 	}
 
 	CC.UI = CounterUI;
+	CC.ui = CC.ui || {};
+	CC.ui.CounterUI = CounterUI;
 })();
