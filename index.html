@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sugan's ClaudeCounter — Interactive AI Telemetry HUD & Chat Exporter</title>
+  <title>Sugan's ClaudeCounter — Live AI Token &amp; Usage Telemetry HUD</title>
   <link rel="stylesheet" href="src/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -14,385 +14,260 @@
     }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #090d16;
-      color: #f1f5f9;
+      background: #141413;
+      color: #ececec;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
     }
 
-    /* Top Demo Header */
-    .demo-nav {
-      height: 60px;
-      background: rgba(13, 17, 23, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-    .demo-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 16px;
-      font-weight: 800;
-      color: #E28743;
-    }
-    .demo-controls-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .demo-pill {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: rgba(226, 135, 67, 0.15);
-      border: 1px solid rgba(226, 135, 67, 0.35);
-      color: #E28743;
-    }
-
-    /* Claude Chat Simulator Container */
-    .claude-app {
-      flex: 1;
-      display: flex;
-      max-width: 1100px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 24px;
-      gap: 24px;
-    }
-
-    .chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #0d1117;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      position: relative;
-    }
-
-    .chat-header {
-      padding: 14px 20px;
-      background: rgba(22, 27, 34, 0.8);
+    /* Top Claude.ai Style Nav */
+    .claude-nav {
+      height: 52px;
+      background: #141413;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 0 20px;
     }
-    .chat-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #f8fafc;
-    }
-    .chat-model-badge {
-      font-size: 12px;
+    .claude-nav-title {
+      font-size: 13px;
       font-weight: 600;
       color: #94A3B8;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .chat-messages {
+    /* Chat Area */
+    .claude-main {
       flex: 1;
-      padding: 24px;
-      overflow-y: auto;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      max-height: 60vh;
+      padding: 30px 20px 20px;
+      justify-content: space-between;
     }
 
-    .msg-bubble {
+    .claude-greeting {
+      font-size: 24px;
+      font-weight: 400;
+      color: #f3f4f6;
+      margin-bottom: 30px;
+      font-family: Georgia, serif;
+    }
+
+    .claude-chat-history {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      max-width: 88%;
-      animation: fadeIn 300ms ease;
+      gap: 24px;
+      flex: 1;
+      margin-bottom: 24px;
     }
-    .msg-bubble--user {
+
+    .msg-user {
       align-self: flex-end;
-      background: #1e293b;
-      padding: 12px 18px;
-      border-radius: 14px 14px 2px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #262624;
+      padding: 10px 16px;
+      border-radius: 16px 16px 4px 16px;
+      font-size: 14px;
+      color: #f8fafc;
+      max-width: 80%;
     }
-    .msg-bubble--claude {
+
+    .msg-assistant {
       align-self: flex-start;
-      background: rgba(30, 41, 59, 0.5);
-      padding: 16px 20px;
-      border-radius: 14px 14px 14px 2px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 14px;
+      color: #ececec;
+      line-height: 1.6;
       width: 100%;
     }
 
-    .thinking-box {
-      background: rgba(139, 92, 246, 0.1);
+    .thinking-accordion {
+      background: rgba(139, 92, 246, 0.08);
       border-left: 3px solid #8B5CF6;
       padding: 10px 14px;
       border-radius: 4px;
       font-size: 12px;
       color: #c4b5fd;
-      margin-bottom: 8px;
     }
-    .thinking-title {
+    .thinking-label {
       font-weight: 700;
       color: #8B5CF6;
       margin-bottom: 4px;
     }
 
-    .artifact-card {
-      background: #0f172a;
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 10px;
-    }
-    .artifact-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 700;
-      color: #38BDF8;
-      margin-bottom: 8px;
-    }
-    .artifact-code {
-      font-family: 'Fira Code', monospace;
-      font-size: 11px;
-      background: #020617;
-      padding: 10px;
-      border-radius: 6px;
-      color: #e2e8f0;
-      overflow-x: auto;
-    }
-
-    /* Input Bar */
-    .chat-input-area {
-      padding: 16px;
-      background: #161b22;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .chat-input {
-      flex: 1;
-      background: #0d1117;
+    /* Claude's Actual Input Box Replicated */
+    .claude-input-container {
+      background: #1f1e1d;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 20px;
-      padding: 10px 16px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-    }
-    .chat-input:focus {
-      border-color: #E28743;
-    }
-
-    /* Simulator Controls Sidebar */
-    .sim-controls {
-      width: 280px;
-      background: #0d1117;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 20px;
+      padding: 14px 16px 10px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      height: fit-content;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
-    .sim-title {
+
+    .claude-textarea {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
       font-size: 14px;
-      font-weight: 800;
-      color: #E28743;
+      font-family: inherit;
+      resize: none;
+      width: 100%;
+      height: 40px;
+    }
+
+    .claude-input-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-left-controls {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .sim-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .sim-label {
-      font-size: 11px;
+
+    .plus-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
       color: #94A3B8;
-      display: flex;
-      justify-content: space-between;
-    }
-    .sim-slider {
-      width: 100%;
-      accent-color: #E28743;
-    }
-    .sim-btn {
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 20px;
       cursor: pointer;
-      transition: all 150ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 150ms ease, color 150ms ease;
     }
-    .sim-btn:hover {
-      background: rgba(226, 135, 67, 0.2);
-      border-color: #E28743;
+    .plus-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    .input-right-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .model-selector-btn {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .model-selector-btn:hover {
+      color: #fff;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      cursor: pointer;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Demo Nav -->
-  <header class="demo-nav">
-    <div class="demo-logo">
-      <img src="https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif" width="28" style="vertical-align: middle;">
-      <span>Sugan's ClaudeCounter HUD</span>
+  <!-- Top Nav -->
+  <nav class="claude-nav">
+    <div class="claude-nav-title">
+      <span>Greeting ˇ</span>
     </div>
-    <div class="demo-controls-bar">
-      <span class="demo-pill">Extension &amp; Userscript Mode</span>
-      <button class="sim-btn" id="open-hud-btn">Open Telemetry HUD</button>
+    <div style="font-size: 12px; color: #64748b;">
+      Sugan's ClaudeCounter HUD Active
     </div>
-  </header>
+  </nav>
 
-  <!-- Claude Simulator -->
-  <main class="claude-app">
-    <div class="chat-container">
-      <div class="chat-header">
-        <div class="chat-title">AI System Architecture &amp; Financial Telemetry</div>
-        <div class="chat-model-badge">Claude 3.7 Sonnet (Thinking)</div>
+  <!-- Main Chat -->
+  <main class="claude-main">
+    <div class="claude-greeting">
+      Hey Sugan — what are we building today?
+    </div>
+
+    <div class="claude-chat-history">
+      <div class="msg-user">
+        hey Claude
       </div>
 
-      <div class="chat-messages" id="chat-messages">
-        <div class="msg-bubble msg-bubble--user">
-          <p>Can you architect a high-throughput event pipeline with automated fallback and caching telemetry?</p>
+      <div class="msg-assistant">
+        <div class="thinking-accordion">
+          <div class="thinking-label">💭 Extended Thinking Process:</div>
+          <p>User initiated the conversation with a greeting. Ready to assist with architecture, coding, data analysis, or full-stack engineering.</p>
         </div>
-
-        <div class="msg-bubble msg-bubble--claude">
-          <div class="thinking-box">
-            <div class="thinking-title">💭 Extended Thinking Process:</div>
-            <p>1. Analyzing low-latency streaming pipeline requirements.<br>2. Designing Redis-backed 5-minute sliding TTL cache layer.<br>3. Formulating telemetry emission with token accounting.</p>
-          </div>
-          <p>Here is the production-grade Event Stream Router with automatic cache tiering:</p>
-          <div class="artifact-card">
-            <div class="artifact-header">
-              <span>📦 StreamRouter.ts (TypeScript)</span>
-              <span>Artifact 1</span>
-            </div>
-            <pre class="artifact-code"><code>export class EventStreamRouter {
-  private cacheTtlMs = 300000; // 5 min TTL
-  async route(event: StreamEvent): Promise&lt;Result&gt; {
-    return this.executeWithFallback(event);
-  }
-}</code></pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chat Input Area with Cat Working Toggle Button -->
-      <div class="chat-input-area">
-        <input type="text" class="chat-input" placeholder="Reply to Claude..." />
-        
-        <!-- Cat Working Toggle Button -->
-        <div class="cc-cat-toggle-btn" id="cat-toggle" title="Click to view ClaudeCounter Telemetry HUD">
-          <span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
-          <span class="cc-cat-label">Telemetry</span>
-          <span class="cc-cat-badge" id="cat-badge">51k</span>
-        </div>
+        <p>Hello Sugan! I'm ready. Let me know what you'd like to work on next!</p>
       </div>
     </div>
 
-    <!-- Simulator Controls Dock -->
-    <aside class="sim-controls">
-      <div class="sim-title">
-        <span>⚙️ Live HUD Simulator</span>
-      </div>
+    <!-- Claude's Input Box with Cat Typing Button near + -->
+    <div class="claude-input-container">
+      <textarea class="claude-textarea" placeholder="Write a message..."></textarea>
 
-      <div class="sim-group">
-        <div class="sim-label">
-          <span>Conversation Tokens</span>
-          <span id="token-val">51,200</span>
+      <div class="claude-input-bottom-row">
+        <div class="input-left-controls">
+          <!-- + Button -->
+          <button class="plus-btn" title="Add content">+</button>
+
+          <!-- Cat Typing Button Placed Right Next to + (No orange text) -->
+          <button class="cc-cat-toggle-btn" id="cat-button" title="View Claude Token & Rate Limit Usage">
+            <span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
+          </button>
         </div>
-        <input type="range" class="sim-slider" id="token-slider" min="1000" max="200000" step="1000" value="51200">
-      </div>
 
-      <div class="sim-group">
-        <div class="sim-label">
-          <span>5-Hour Rate Limit %</span>
-          <span id="rate-val">62%</span>
+        <div class="input-right-controls">
+          <button class="model-selector-btn" id="model-picker">
+            <span>Sonnet 5 High</span>
+            <span>ˇ</span>
+          </button>
+          <button class="icon-btn" title="Voice Input">🎙️</button>
+          <button class="icon-btn" title="Audio">|||</button>
         </div>
-        <input type="range" class="sim-slider" id="rate-slider" min="0" max="100" value="62">
       </div>
-
-      <div class="sim-group">
-        <button class="sim-btn" id="trigger-msg-btn">➕ Simulate New Message</button>
-        <button class="sim-btn" id="trigger-export-btn" style="background: rgba(226, 135, 67, 0.2); border-color: #E28743; color: #E28743;">📥 Test Instant Chat Export</button>
-      </div>
-
-      <div style="font-size: 11px; color: #64748b; line-height: 1.4;">
-        💡 Click the <b>🐱 Telemetry</b> button in the input bar or use the controls above to inspect the 3-tabbed HUD.
-      </div>
-    </aside>
+    </div>
   </main>
 
-  <!-- Load Scripts -->
+  <!-- Scripts -->
   <script src="src/content/constants.js"></script>
   <script src="src/content/tokens.js"></script>
   <script src="src/content/exporter.js"></script>
   <script src="src/content/ui.js"></script>
 
   <script>
-    // Initialize UI on Demo Page
     const ui = new CC.UI();
     ui.initialize();
-    ui.updateTokens(51200);
+    ui.updateTokens(28400);
+    ui.updateUsage({
+      sessionUtilization: 0.624,
+      weeklyUtilization: 0.341,
+      sessionResetMs: Date.now() + 3.7 * 60 * 60 * 1000,
+      weeklyResetMs: Date.now() + 4.5 * 24 * 60 * 60 * 1000
+    });
 
-    const catToggle = document.getElementById('cat-toggle');
-    catToggle.addEventListener('click', () => {
+    const catBtn = document.getElementById('cat-button');
+    catBtn.addEventListener('click', () => {
       ui.toggleSideHud();
-    });
-
-    document.getElementById('open-hud-btn').addEventListener('click', () => {
-      ui.toggleSideHud();
-    });
-
-    const tokenSlider = document.getElementById('token-slider');
-    const tokenVal = document.getElementById('token-val');
-    tokenSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value);
-      tokenVal.textContent = val.toLocaleString();
-      document.getElementById('cat-badge').textContent = Math.round(val / 1000) + 'k';
-      ui.updateTokens(val);
-    });
-
-    const rateSlider = document.getElementById('rate-slider');
-    const rateVal = document.getElementById('rate-val');
-    rateSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value);
-      rateVal.textContent = val + '%';
-      ui.updateUsage({ sessionUtilization: val / 100 });
-    });
-
-    document.getElementById('trigger-export-btn').addEventListener('click', () => {
-      CC.Exporter.exportToMarkdown();
     });
   </script>
 </body>

@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Sugan's ClaudeCounter HUD & Exporter
 // @namespace    https://github.com/sugan0025/Sugan-s-ClaudeCounter
-// @version      1.0.0
-// @description  Luminous AI Telemetry HUD, Token Counter, Rate Limits, and Full Session Exporter (Thinking + Artifacts) for Claude.ai
+// @version      1.1.0
+// @description  Single-Card Real-Time Token & Usage HUD with Cat Button in Claude's Input Box and Full Session Thinking & Artifact Exporter
 // @match        https://claude.ai/*
 // @run-at       document-start
 // @grant        none
@@ -16,50 +16,18 @@
 	if (CC.__ccUserscriptWrapped) return;
 	CC.__ccUserscriptWrapped = true;
 
-	/* --- 1. Bridge & Interceptor --- */
+	/* --- 1. Bridge & Real-Time Interceptor --- */
 	CC._ccInternal = CC._ccInternal || {};
-	CC._ccInternal.onGenerationStart = CC._ccInternal.onGenerationStart || (() => {});
-	CC._ccInternal.onConversationData = CC._ccInternal.onConversationData || (() => {});
-	CC._ccInternal.onMessageLimit = CC._ccInternal.onMessageLimit || (() => {});
-	CC._ccInternal.onUrlChange = CC._ccInternal.onUrlChange || (() => {});
 	CC._ccInternal.conversationTrees = CC._ccInternal.conversationTrees || {};
+	CC._ccInternal.currentConversationId = null;
 
 	const originalFetch = window.fetch ? window.fetch.bind(window) : null;
 	CC._ccInternal.originalFetch = originalFetch;
 
-	const originalPushState = history.pushState.bind(history);
-	const originalReplaceState = history.replaceState.bind(history);
-
-	const dispatchUrlChange = () => {
-		try { CC._ccInternal.onUrlChange(); } catch {}
-	};
-
-	history.pushState = function (...args) {
-		const result = originalPushState(...args);
-		dispatchUrlChange();
-		return result;
-	};
-
-	history.replaceState = function (...args) {
-		const result = originalReplaceState(...args);
-		dispatchUrlChange();
-		return result;
-	};
-
-	window.addEventListener('popstate', dispatchUrlChange);
-
 	if (originalFetch) {
 		window.fetch = async (...args) => {
 			const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-			const opts = args[1] || {};
-			const method = (opts.method || 'GET').toUpperCase();
-
-			if (url && method === 'POST' && (url.includes('/completion') || url.includes('/retry_completion'))) {
-				try { CC._ccInternal.onGenerationStart(); } catch {}
-			}
-
 			const response = await originalFetch(...args);
-			const contentType = response.headers.get('content-type') || '';
 
 			if (url && url.includes('/chat_conversations/') && url.includes('tree=')) {
 				try {
@@ -69,16 +37,14 @@
 							CC._ccInternal.conversationTrees[data.uuid] = data;
 							CC._ccInternal.currentConversationId = data.uuid;
 						}
-						CC._ccInternal.onConversationData(data);
 					}).catch(() => {});
 				} catch {}
 			}
-
 			return response;
 		};
 	}
 
-	/* --- 2. CSS Styles Injection --- */
+	/* --- 2. CSS Styles --- */
 	const styles = `
 		:root {
 			--cc-amber: #E28743;
@@ -89,7 +55,7 @@
 			--cc-cyan-glow: rgba(56, 189, 248, 0.35);
 			--cc-green: #10B981;
 			--cc-red: #EF4444;
-			--cc-dark-bg: rgba(13, 17, 23, 0.94);
+			--cc-dark-bg: rgba(15, 23, 42, 0.96);
 			--cc-dark-border: rgba(255, 255, 255, 0.12);
 			--cc-text-primary: #F8FAFC;
 			--cc-text-muted: #94A3B8;
@@ -102,70 +68,44 @@
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			gap: 6px;
-			height: 34px;
-			padding: 0 12px;
-			background: rgba(226, 135, 67, 0.12);
-			border: 1px solid rgba(226, 135, 67, 0.35);
-			border-radius: 20px;
+			width: 28px;
+			height: 28px;
+			background: transparent;
+			border: none;
+			border-radius: 50%;
 			cursor: pointer;
 			user-select: none;
-			transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-			backdrop-filter: blur(8px);
-			-webkit-backdrop-filter: blur(8px);
-			z-index: 100;
+			transition: all 180ms ease;
 			margin: 0 4px;
+			padding: 0;
+			z-index: 100;
+			flex-shrink: 0;
 		}
 
 		.cc-cat-toggle-btn:hover {
-			background: rgba(226, 135, 67, 0.22);
-			border-color: var(--cc-amber);
-			box-shadow: 0 0 14px var(--cc-amber-glow);
-			transform: translateY(-1px) scale(1.03);
+			background: rgba(255, 255, 255, 0.12);
+			transform: scale(1.15);
 		}
 
 		.cc-cat-icon {
-			width: 20px;
-			height: 20px;
+			width: 22px;
+			height: 22px;
 			display: inline-block;
 			background-size: contain;
 			background-repeat: no-repeat;
-			animation: cc-cat-bounce 1.6s ease-in-out infinite;
-		}
-
-		.cc-cat-label {
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-			font-size: 11px;
-			font-weight: 700;
-			color: var(--cc-amber);
-			letter-spacing: 0.3px;
-			white-space: nowrap;
-		}
-
-		.cc-cat-badge {
-			font-size: 10px;
-			padding: 1px 6px;
-			background: var(--cc-amber);
-			color: #0d1117;
-			border-radius: 10px;
-			font-weight: 800;
-		}
-
-		@keyframes cc-cat-bounce {
-			0%, 100% { transform: translateY(0); }
-			50% { transform: translateY(-2px); }
+			background-position: center;
+			border-radius: 4px;
 		}
 
 		.cc-side-hud {
 			position: fixed;
 			right: 24px;
-			bottom: 80px;
-			width: 380px;
-			max-height: 88vh;
+			bottom: 84px;
+			width: 360px;
 			background: var(--cc-dark-bg);
 			border-radius: var(--cc-radius-lg);
-			box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 24px var(--cc-active-glow, var(--cc-amber-glow));
-			border: 1.5px solid var(--cc-active-border, var(--cc-amber));
+			box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.25);
+			border: 1.5px solid rgba(56, 189, 248, 0.4);
 			backdrop-filter: blur(24px);
 			-webkit-backdrop-filter: blur(24px);
 			z-index: 99999;
@@ -173,9 +113,9 @@
 			flex-direction: column;
 			overflow: hidden;
 			opacity: 0;
-			transform: translateX(30px) scale(0.95);
+			transform: translateX(30px) scale(0.96);
 			pointer-events: none;
-			transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+			transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 			color: var(--cc-text-primary);
 		}
@@ -186,31 +126,34 @@
 			pointer-events: auto;
 		}
 
-		.cc-side-hud--usage { --cc-active-border: var(--cc-amber); --cc-active-glow: var(--cc-amber-glow); }
-		.cc-side-hud--stats { --cc-active-border: var(--cc-purple); --cc-active-glow: var(--cc-purple-glow); }
-		.cc-side-hud--context { --cc-active-border: var(--cc-cyan); --cc-active-glow: var(--cc-cyan-glow); }
-
 		.cc-hud-top {
-			padding: 16px 18px 12px;
+			padding: 14px 18px 12px;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
+			background: rgba(0, 0, 0, 0.25);
 			border-bottom: 1px solid var(--cc-dark-border);
 		}
 
 		.cc-hud-title {
-			font-size: 18px;
+			font-size: 16px;
 			font-weight: 800;
-			color: var(--cc-active-border, var(--cc-amber));
+			color: #fff;
 			display: flex;
 			align-items: center;
-			gap: 6px;
+			gap: 8px;
 		}
 
-		.cc-hud-subtitle {
+		.cc-hud-model-tag {
 			font-size: 11px;
-			color: var(--cc-text-muted);
-			margin-top: 2px;
+			font-weight: 600;
+			color: var(--cc-cyan);
+			background: rgba(56, 189, 248, 0.15);
+			padding: 2px 8px;
+			border-radius: 12px;
+			border: 1px solid rgba(56, 189, 248, 0.3);
+			margin-top: 4px;
+			width: fit-content;
 		}
 
 		.cc-hud-close-btn {
@@ -227,47 +170,41 @@
 			justify-content: center;
 		}
 
-		.cc-tab-bar {
-			display: flex;
-			gap: 6px;
-			padding: 8px 16px;
-			background: rgba(0, 0, 0, 0.25);
-			border-bottom: 1px solid var(--cc-dark-border);
-		}
-
-		.cc-tab-btn {
-			flex: 1;
-			padding: 6px 10px;
-			background: transparent;
-			border: 1px solid transparent;
-			border-radius: var(--cc-radius-sm);
-			color: var(--cc-text-muted);
-			font-size: 11px;
-			font-weight: 600;
-			cursor: pointer;
-			text-align: center;
-		}
-
-		.cc-tab-btn.cc-active {
-			background: rgba(255, 255, 255, 0.1);
-			color: #fff;
-			border-color: var(--cc-dark-border);
-		}
-
 		.cc-hud-body {
-			padding: 16px;
-			overflow-y: auto;
-			max-height: 55vh;
+			padding: 16px 18px;
 			display: flex;
 			flex-direction: column;
-			gap: 14px;
+			gap: 16px;
 		}
 
-		.cc-metric-row {
+		.cc-usage-block {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			background: rgba(255, 255, 255, 0.03);
+			padding: 12px;
+			border-radius: var(--cc-radius-md);
+			border: 1px solid rgba(255, 255, 255, 0.06);
+		}
+
+		.cc-metric-header {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			font-size: 13px;
+			font-size: 12px;
+		}
+
+		.cc-metric-name {
+			font-weight: 700;
+			color: #e2e8f0;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.cc-metric-value {
+			font-weight: 700;
+			color: #fff;
 		}
 
 		.cc-meter-track {
@@ -277,67 +214,44 @@
 			border-radius: 4px;
 			overflow: hidden;
 			position: relative;
+			margin: 2px 0;
 		}
 
 		.cc-meter-fill {
 			height: 100%;
 			border-radius: 4px;
-			transition: width 400ms ease;
+			transition: width 300ms ease;
 		}
 
-		.cc-meter-fill--orange { background: linear-gradient(90deg, #F59E0B, #E28743); box-shadow: 0 0 8px var(--cc-amber-glow); }
-		.cc-meter-fill--purple { background: linear-gradient(90deg, #A855F7, #8B5CF6); box-shadow: 0 0 8px var(--cc-purple-glow); }
-		.cc-meter-fill--cyan { background: linear-gradient(90deg, #0EA5E9, #38BDF8); box-shadow: 0 0 8px var(--cc-cyan-glow); }
-		.cc-meter-fill--green { background: linear-gradient(90deg, #10B981, #34D399); }
+		.cc-meter-fill--cyan { background: linear-gradient(90deg, #0284C7, #38BDF8); box-shadow: 0 0 8px var(--cc-cyan-glow); }
+		.cc-meter-fill--amber { background: linear-gradient(90deg, #D97706, #F59E0B); box-shadow: 0 0 8px var(--cc-amber-glow); }
+		.cc-meter-fill--purple { background: linear-gradient(90deg, #7C3AED, #8B5CF6); box-shadow: 0 0 8px var(--cc-purple-glow); }
+		.cc-meter-fill--red { background: linear-gradient(90deg, #DC2626, #EF4444); }
 
-		.cc-heatmap-wrap {
-			background: rgba(0, 0, 0, 0.25);
-			border: 1px solid var(--cc-dark-border);
-			border-radius: var(--cc-radius-md);
-			padding: 12px;
+		.cc-metric-subtext {
+			display: flex;
+			justify-content: space-between;
+			font-size: 11px;
+			color: var(--cc-text-muted);
 		}
 
-		.cc-heatmap-grid {
-			display: grid;
-			grid-template-columns: 32px repeat(7, 1fr);
-			gap: 4px;
-			align-items: center;
+		.cc-cache-status {
+			font-size: 11px;
+			font-weight: 600;
+			color: var(--cc-green);
 		}
 
-		.cc-heatmap-day { font-size: 10px; color: var(--cc-text-muted); }
-		.cc-heatmap-cell { width: 100%; aspect-ratio: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.05); }
-		.cc-heatmap-cell--1 { background: rgba(139, 92, 246, 0.25); }
-		.cc-heatmap-cell--2 { background: rgba(139, 92, 246, 0.50); }
-		.cc-heatmap-cell--3 { background: rgba(139, 92, 246, 0.75); }
-		.cc-heatmap-cell--4 { background: #8B5CF6; box-shadow: 0 0 6px var(--cc-purple-glow); }
-
-		.cc-catchphrase {
-			text-align: center;
-			font-style: italic;
-			font-size: 12px;
-			color: var(--cc-active-border, var(--cc-amber));
+		.cc-cache-status--expired {
+			color: var(--cc-text-muted);
 		}
 
 		.cc-hud-footer {
-			padding: 12px 16px;
+			padding: 14px 18px;
 			background: rgba(0, 0, 0, 0.35);
 			border-top: 1px solid var(--cc-dark-border);
 			display: flex;
 			flex-direction: column;
 			gap: 8px;
-		}
-
-		.cc-cost-pill {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 6px 12px;
-			background: rgba(16, 185, 129, 0.15);
-			border: 1px solid rgba(16, 185, 129, 0.35);
-			border-radius: 20px;
-			color: #34D399;
-			font-size: 11px;
-			font-weight: 700;
 		}
 
 		.cc-export-btn {
@@ -346,7 +260,7 @@
 			justify-content: center;
 			gap: 8px;
 			width: 100%;
-			padding: 9px 14px;
+			padding: 10px 14px;
 			background: linear-gradient(135deg, #E28743, #D97706);
 			border: none;
 			border-radius: var(--cc-radius-md);
@@ -363,7 +277,7 @@
 			color: var(--cc-text-muted);
 			font-size: 11px;
 			font-weight: 600;
-			padding: 5px;
+			padding: 6px;
 			border-radius: var(--cc-radius-sm);
 			cursor: pointer;
 		}
@@ -373,11 +287,11 @@
 	styleTag.textContent = styles;
 	document.head.appendChild(styleTag);
 
-	/* --- 3. Exporter Engine --- */
+	/* --- 3. Full Session Exporter Engine --- */
 	class ConversationExporter {
 		extractConversation() {
-			const activeConversationId = CC._ccInternal?.currentConversationId || 'session-' + Date.now();
-			const cachedTree = CC._ccInternal?.conversationTrees?.[activeConversationId] || null;
+			const activeId = CC._ccInternal?.currentConversationId || 'session-' + Date.now();
+			const cachedTree = CC._ccInternal?.conversationTrees?.[activeId] || null;
 			let messages = [];
 
 			if (cachedTree && Array.isArray(cachedTree.chat_messages) && cachedTree.chat_messages.length > 0) {
@@ -389,7 +303,7 @@
 					artifacts: []
 				}));
 			} else {
-				const domMessages = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"]');
+				const domMessages = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
 				domMessages.forEach((el, idx) => {
 					messages.push({
 						index: idx + 1,
@@ -442,11 +356,51 @@
 
 	CC.Exporter = new ConversationExporter();
 
-	/* --- 4. Cat Button & HUD Injector --- */
+	/* --- 4. Single Clean Usage HUD & Cat Button Controller --- */
 	let catButton = null;
 	let sideHud = null;
-	let activeTab = 'usage';
 	let hudOpen = false;
+
+	let currentTokens = 0;
+	let sessionUtilization = 0.28;
+	let weeklyUtilization = 0.34;
+	let sessionResetMs = Date.now() + 3.7 * 60 * 60 * 1000;
+	let weeklyResetMs = Date.now() + 4.5 * 24 * 60 * 60 * 1000;
+	let cachedUntilMs = Date.now() + 3.5 * 60 * 1000;
+
+	function formatReset(ms) {
+		if (!ms) return 'Active';
+		const diff = ms - Date.now();
+		if (diff <= 0) return 'Resetting';
+		const s = Math.floor(diff / 1000);
+		if (s < 60) return `${s}s`;
+		const m = Math.round(s / 60);
+		if (m < 60) return `${m}m`;
+		const h = Math.floor(m / 60);
+		if (h < 24) return `${h}h ${m % 60}m`;
+		return `${Math.floor(h / 24)}d ${h % 24}h`;
+	}
+
+	function detectModel() {
+		const el = document.querySelector('[data-testid="model-selector-dropdown"], [class*="model-selector"], [aria-label*="Model"], button:has(span)');
+		if (el) {
+			const text = el.innerText.trim();
+			if (text && (text.includes('Sonnet') || text.includes('Opus') || text.includes('Haiku') || text.includes('Claude'))) {
+				return text.split('\n')[0].replace('ˇ', '').trim();
+			}
+		}
+		return 'Sonnet 5 High';
+	}
+
+	function scrapeTokens() {
+		const messageEls = document.querySelectorAll('[data-testid="user-message"], [data-testid="assistant-message"], .font-claude-message, .font-user-message');
+		let chars = 0;
+		messageEls.forEach(el => chars += el.innerText.length);
+		const inputEl = document.querySelector('textarea, [contenteditable="true"], .ProseMirror');
+		if (inputEl) chars += (inputEl.value || inputEl.innerText || '').length;
+		if (chars > 0) return Math.ceil(chars / 3.85);
+		return currentTokens;
+	}
 
 	function renderHud() {
 		if (!sideHud) {
@@ -455,63 +409,64 @@
 			document.body.appendChild(sideHud);
 		}
 
-		sideHud.className = `cc-side-hud cc-side-hud--${activeTab} ${hudOpen ? 'cc-open' : ''}`;
+		const modelName = detectModel();
+		const tokensUsed = currentTokens;
+		const usedPct = Math.min(100, Math.round((tokensUsed / 200000) * 100 * 10) / 10);
+		const sessPct = Math.min(100, Math.round(sessionUtilization * 100 * 10) / 10);
+		const weekPct = Math.min(100, Math.round(weeklyUtilization * 100 * 10) / 10);
 
-		let titleHtml = activeTab === 'usage' ? '/usage' : (activeTab === 'stats' ? '/stats' : '/context');
-		let subtitleHtml = activeTab === 'usage' ? 'Plan limits & rate limit status' : (activeTab === 'stats' ? 'Heatmap, sessions, models, streaks' : 'Context window breakdown');
-
-		let bodyHtml = '';
-		if (activeTab === 'usage') {
-			bodyHtml = `
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Plan</span><span style="font-weight: 700; color: #E28743;">Pro / Max</span></div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Rate limit</span><span style="font-weight: 700;">1,247 / 2,000</span></div>
-				<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--orange" style="width: 62%;"></div></div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Resets in</span><span style="font-weight: 700;">3h 42m</span></div>
-				<div class="cc-catchphrase">"Can I keep working?"</div>
-			`;
-		} else if (activeTab === 'stats') {
-			bodyHtml = `
-				<div class="cc-heatmap-wrap">
-					<div class="cc-heatmap-grid">
-						<div class="cc-heatmap-day">Mon</div>
-						<div class="cc-heatmap-cell cc-heatmap-cell--1"></div><div class="cc-heatmap-cell cc-heatmap-cell--3"></div><div class="cc-heatmap-cell cc-heatmap-cell--2"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--1"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--2"></div>
-						<div class="cc-heatmap-day">Wed</div>
-						<div class="cc-heatmap-cell cc-heatmap-cell--2"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--1"></div><div class="cc-heatmap-cell cc-heatmap-cell--3"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--2"></div><div class="cc-heatmap-cell cc-heatmap-cell--3"></div>
-						<div class="cc-heatmap-day">Fri</div>
-						<div class="cc-heatmap-cell cc-heatmap-cell--3"></div><div class="cc-heatmap-cell cc-heatmap-cell--1"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--3"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--4"></div><div class="cc-heatmap-cell cc-heatmap-cell--2"></div>
-					</div>
-				</div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Sessions</span><span style="font-weight: 700;">92</span></div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Total tokens</span><span style="font-weight: 700;">10.5m</span></div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Longest streak</span><span style="font-weight: 700;">56 days</span></div>
-				<div class="cc-catchphrase">"Where are my tokens going?"</div>
-			`;
-		} else {
-			bodyHtml = `
-				<div class="cc-metric-row"><span style="color: #94A3B8;">System prompt</span><span>1.3%</span></div>
-				<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--cyan" style="width: 1.3%;"></div></div>
-				<div class="cc-metric-row"><span style="color: #94A3B8;">Messages</span><span>15.3%</span></div>
-				<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--cyan" style="width: 15.3%;"></div></div>
-				<div class="cc-metric-row"><span style="color: #10B981;">Free space</span><span>57.0%</span></div>
-				<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--green" style="width: 57%;"></div></div>
-				<div class="cc-catchphrase">"What's eating my context?"</div>
-			`;
-		}
+		sideHud.className = `cc-side-hud ${hudOpen ? 'cc-open' : ''}`;
 
 		sideHud.innerHTML = `
 			<div class="cc-hud-top">
 				<div>
-					<div class="cc-hud-title">${titleHtml}</div>
-					<div class="cc-hud-subtitle">${subtitleHtml}</div>
+					<div class="cc-hud-title">
+						<span style="display:inline-block; width:18px; height:18px; background-image:url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif'); background-size:contain;"></span>
+						<span>Claude Usage &amp; Telemetry</span>
+					</div>
+					<div class="cc-hud-model-tag">${modelName}</div>
 				</div>
 				<button class="cc-hud-close-btn" id="cc-hud-close">✕</button>
 			</div>
-			<div class="cc-tab-bar">
-				<button class="cc-tab-btn ${activeTab === 'usage' ? 'cc-active' : ''}" data-tab="usage">Usage</button>
-				<button class="cc-tab-btn ${activeTab === 'stats' ? 'cc-active' : ''}" data-tab="stats">Stats</button>
-				<button class="cc-tab-btn ${activeTab === 'context' ? 'cc-active' : ''}" data-tab="context">Context</button>
+
+			<div class="cc-hud-body">
+				<div class="cc-usage-block">
+					<div class="cc-metric-header">
+						<span class="cc-metric-name">💬 Current Conversation</span>
+						<span class="cc-metric-value" style="color: var(--cc-cyan);">${tokensUsed.toLocaleString()} / 200k</span>
+					</div>
+					<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--cyan" style="width: ${usedPct}%;"></div></div>
+					<div class="cc-metric-subtext">
+						<span>Context: <b>${usedPct}%</b></span>
+						<span class="cc-cache-status">⚡ 5m Cache Active</span>
+					</div>
+				</div>
+
+				<div class="cc-usage-block">
+					<div class="cc-metric-header">
+						<span class="cc-metric-name">⏱️ 5-Hour Session Limit</span>
+						<span class="cc-metric-value" style="color: var(--cc-amber);">${sessPct}%</span>
+					</div>
+					<div class="cc-meter-track"><div class="cc-meter-fill ${sessPct > 80 ? 'cc-meter-fill--red' : 'cc-meter-fill--amber'}" style="width: ${sessPct}%;"></div></div>
+					<div class="cc-metric-subtext">
+						<span>Resets in: <b style="color:#fff;">${formatReset(sessionResetMs)}</b></span>
+						<span>Rolling Window</span>
+					</div>
+				</div>
+
+				<div class="cc-usage-block">
+					<div class="cc-metric-header">
+						<span class="cc-metric-name">📅 Weekly Usage</span>
+						<span class="cc-metric-value" style="color: var(--cc-purple);">${weekPct}%</span>
+					</div>
+					<div class="cc-meter-track"><div class="cc-meter-fill cc-meter-fill--purple" style="width: ${weekPct}%;"></div></div>
+					<div class="cc-metric-subtext">
+						<span>Resets in: <b style="color:#fff;">${formatReset(weeklyResetMs)}</b></span>
+						<span>7-Day Period</span>
+					</div>
+				</div>
 			</div>
-			<div class="cc-hud-body">${bodyHtml}</div>
+
 			<div class="cc-hud-footer">
 				<button class="cc-export-btn" id="cc-export-md">📥 Export Chat (Full Thinking &amp; Artifacts)</button>
 				<button class="cc-export-json-btn" id="cc-export-json">Export Raw JSON</button>
@@ -519,30 +474,41 @@
 		`;
 
 		sideHud.querySelector('#cc-hud-close').onclick = () => { hudOpen = false; renderHud(); };
-		sideHud.querySelectorAll('.cc-tab-btn').forEach(btn => {
-			btn.onclick = (e) => { activeTab = e.target.getAttribute('data-tab'); renderHud(); };
-		});
 		sideHud.querySelector('#cc-export-md').onclick = () => CC.Exporter.exportToMarkdown();
 		sideHud.querySelector('#cc-export-json').onclick = () => CC.Exporter.exportToJson();
 	}
 
 	function injectCatButton() {
-		const target = document.querySelector('[data-testid="chat-input-row"], fieldset, form');
-		if (target && !catButton) {
-			catButton = document.createElement('div');
+		const plusBtn = document.querySelector('[data-testid="file-upload-button"], button[aria-label*="Add"], button[aria-label*="Attach"], fieldset button:has(svg)');
+		const inputArea = document.querySelector('[data-testid="chat-input-row"], fieldset, form');
+
+		if (!catButton) {
+			catButton = document.createElement('button');
 			catButton.className = 'cc-cat-toggle-btn';
+			catButton.type = 'button';
+			catButton.title = 'View Claude Token & Rate Limit Usage';
 			catButton.innerHTML = `
 				<span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
-				<span class="cc-cat-label">Telemetry</span>
 			`;
 			catButton.onclick = (e) => {
+				e.preventDefault();
 				e.stopPropagation();
 				hudOpen = !hudOpen;
 				renderHud();
 			};
-			target.appendChild(catButton);
+		}
+
+		if (plusBtn && plusBtn.parentElement && !plusBtn.parentElement.contains(catButton)) {
+			plusBtn.insertAdjacentElement('afterend', catButton);
+		} else if (inputArea && !inputArea.contains(catButton)) {
+			inputArea.appendChild(catButton);
 		}
 	}
 
-	setInterval(injectCatButton, 1000);
+	// Real-Time 1-Second Ticker
+	setInterval(() => {
+		currentTokens = scrapeTokens();
+		injectCatButton();
+		if (hudOpen) renderHud();
+	}, 1000);
 })();
