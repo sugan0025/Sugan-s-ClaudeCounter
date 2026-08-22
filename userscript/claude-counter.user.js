@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Sugan's ClaudeCounter HUD & Exporter
 // @namespace    https://github.com/sugan0025/Sugan-s-ClaudeCounter
-// @version      1.2.0
-// @description  Single-Card Real-Time Token & Usage HUD with Cat Button in Claude's Input Box and Full Session Thinking & Artifact Exporter
+// @version      1.3.0
+// @description  Single-Card Real-Time Token & Usage HUD with Cat Button in Claude's Input Box and Full Session Thinking & Artifact Exporter (supports created files & sandboxed tools)
 // @match        https://claude.ai/*
 // @run-at       document-start
 // @grant        none
@@ -338,9 +338,9 @@
 	styleTag.textContent = styles;
 	document.head.appendChild(styleTag);
 
-	/* --- 3. Full Session Exporter Engine --- */
+	/* --- 3. Full Session Exporter Engine (with created files & sandboxed tools) --- */
 	class ConversationExporter {
-		extractConversation() {
+		async extractConversation() {
 			const activeId = CC._ccInternal?.currentConversationId || this._getId();
 			const cachedTree = CC._ccInternal?.conversationTrees?.[activeId] || null;
 			let messages = [];
@@ -383,14 +383,66 @@
 				if (Array.isArray(msg.content)) {
 					for (const part of msg.content) {
 						if (!part) continue;
-						if (part.type === 'text') text += (text ? '\n\n' : '') + part.text;
-						else if (part.type === 'thinking' || part.type === 'redacted_thinking') thinking += (thinking ? '\n\n' : '') + (part.thinking || part.text || part.data || '');
-						else if (part.type === 'tool_use') {
+						if (part.type === 'text') {
+							text += (text ? '\n\n' : '') + part.text;
+						} else if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+							thinking += (thinking ? '\n\n' : '') + (part.thinking || part.text || part.data || '');
+						} else if (part.type === 'tool_use') {
+							const toolName = part.name || '';
+							const input = part.input || {};
+
+							if (toolName === 'artifacts' || toolName.includes('artifact')) {
+								artifacts.push({
+									identifier: input.id || `artifact-${index + 1}`,
+									title: input.title || 'Generated Artifact',
+									type: input.type || 'code',
+									content: input.content || (typeof input === 'string' ? input : JSON.stringify(input, null, 2))
+								});
+							} else if (
+								toolName === 'create_file' || 
+								toolName === 'write_file' || 
+								toolName === 'file_editor' || 
+								toolName === 'text_editor' || 
+								toolName === 'str_replace_editor' ||
+								toolName.includes('file') ||
+								input.path || 
+								input.file_path || 
+								input.file_text
+							) {
+								const filePath = input.path || input.file_path || input.file_name || input.title || `file-${index + 1}`;
+								const fileContent = input.file_text || input.content || input.new_str || input.text || (typeof input === 'string' ? input : JSON.stringify(input, null, 2));
+								const fileType = filePath.includes('.') ? filePath.split('.').pop() : 'text';
+								artifacts.push({
+									identifier: `file-${index + 1}-${artifacts.length + 1}`,
+									title: `📄 File: ${filePath}`,
+									type: fileType,
+									content: fileContent
+								});
+							} else if (toolName === 'bash' || toolName === 'repl' || toolName === 'execute') {
+								const code = input.command || input.code || input.script || (typeof input === 'string' ? input : JSON.stringify(input, null, 2));
+								artifacts.push({
+									identifier: `exec-${index + 1}-${artifacts.length + 1}`,
+									title: `💻 Command: ${toolName}`,
+									type: 'bash',
+									content: code
+								});
+							} else {
+								artifacts.push({
+									identifier: `tool-${toolName || 'use'}-${index + 1}`,
+									title: `Tool: ${toolName || 'execution'}`,
+									type: 'tool_use',
+									content: typeof input === 'string' ? input : JSON.stringify(input, null, 2)
+								});
+							}
+						} else if (part.type === 'tool_result' && part.content) {
+							const contentStr = typeof part.content === 'string' ? part.content : JSON.stringify(part.content, null, 2);
+							text += (text ? '\n\n' : '') + `**Tool Result:**\n\`\`\`\n${contentStr}\n\`\`\``;
+						} else if (part.type === 'document' || part.type === 'file') {
 							artifacts.push({
-								identifier: part.input?.id || `artifact-${index + 1}`,
-								title: part.input?.title || `Tool: ${part.name || 'execution'}`,
-								type: part.input?.type || 'code',
-								content: part.input?.content || (typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2))
+								identifier: `doc-${index + 1}-${artifacts.length + 1}`,
+								title: `📄 ${part.title || part.name || 'Document'}`,
+								type: 'document',
+								content: part.text || part.content || ''
 							});
 						}
 					}
@@ -427,16 +479,27 @@
 				const th = turn.querySelector?.('[data-testid="thinking-block"], details, [class*="thinking"], [class*="Thinking"]');
 				if (th) thinking = th.innerText.trim();
 
+				const artifacts = [];
+				const artifactEls = turn.querySelectorAll?.('[data-testid="file-preview"], [data-testid="code-block"], [class*="FilePreview"], [data-testid="artifact-button"], pre code, [class*="artifact"]');
+				artifactEls?.forEach?.((art, aIdx) => {
+					artifacts.push({
+						identifier: `art-${idx + 1}-${aIdx + 1}`,
+						title: art.getAttribute?.('data-title') || `Artifact ${aIdx + 1}`,
+						type: 'code',
+						content: art.innerText.trim()
+					});
+				});
+
 				let text = turn.innerText?.trim() || '';
 				if (thinking && text.includes(thinking)) text = text.replace(thinking, '').trim();
 
-				if (text || thinking) {
+				if (text || thinking || artifacts.length > 0) {
 					messages.push({
 						index: idx + 1,
 						sender: isUser ? 'Human' : 'Claude',
 						text,
 						thinking,
-						artifacts: [],
+						artifacts,
 						createdAt: new Date().toISOString()
 					});
 				}
@@ -445,8 +508,8 @@
 			return messages;
 		}
 
-		exportToMarkdown() {
-			const data = this.extractConversation();
+		async exportToMarkdown() {
+			const data = await this.extractConversation();
 			let md = `# ${data.title}\n\n`;
 			md += `> **Model**: ${data.model}  \n`;
 			md += `> **Exported At**: ${new Date(data.exportedAt).toLocaleString()}  \n`;
@@ -460,7 +523,7 @@
 				if (msg.text) md += `${msg.text}\n\n`;
 				if (msg.artifacts && msg.artifacts.length > 0) {
 					msg.artifacts.forEach((art, aIdx) => {
-						md += `#### 📦 Artifact ${aIdx + 1}: ${art.title}\n\`\`\`\n${art.content}\n\`\`\`\n\n`;
+						md += `#### 📦 ${art.title}\n\`\`\`\n${art.content}\n\`\`\`\n\n`;
 					});
 				}
 				if (msg.truncated) md += `> ⚠️ *[Response truncated due to token limit]*\n\n`;
@@ -477,8 +540,8 @@
 			document.body.removeChild(a);
 		}
 
-		exportToJson() {
-			const data = this.extractConversation();
+		async exportToJson() {
+			const data = await this.extractConversation();
 			const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
@@ -615,8 +678,9 @@
 	}
 
 	function injectCatButton() {
-		const plusBtn = document.querySelector('[data-testid="file-upload-button"], button[aria-label*="Add"], button[aria-label*="Attach"], fieldset button:has(svg)');
-		const inputArea = document.querySelector('[data-testid="chat-input-row"], fieldset, form');
+		const selector = '[data-testid="file-upload-button"], [data-testid="attach-button"], button[aria-label*="Add content" i], button[aria-label*="Attach" i], button[aria-label*="Upload" i], button[aria-label*="Add attachment" i]';
+		const plusBtn = document.querySelector(selector);
+		const inputArea = document.querySelector('[data-testid="chat-input-row"], fieldset > div, form > div');
 
 		if (!catButton) {
 			catButton = document.createElement('button');
@@ -634,8 +698,10 @@
 			};
 		}
 
-		if (plusBtn && plusBtn.parentElement && !plusBtn.parentElement.contains(catButton)) {
-			plusBtn.insertAdjacentElement('afterend', catButton);
+		if (plusBtn && plusBtn.parentElement) {
+			if (plusBtn.nextElementSibling !== catButton) {
+				plusBtn.insertAdjacentElement('afterend', catButton);
+			}
 		} else if (inputArea && !inputArea.contains(catButton)) {
 			inputArea.appendChild(catButton);
 		}

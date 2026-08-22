@@ -5,7 +5,7 @@
 
 	/**
 	 * Extracts and exports Claude.ai conversations with full thinking chains,
-	 * artifacts, code blocks, and telemetry metadata, even if token limits were reached mid-way.
+	 * artifacts, created files, code blocks, and telemetry metadata.
 	 */
 	class ConversationExporter {
 		constructor() {
@@ -13,13 +13,44 @@
 		}
 
 		/**
+		 * Helper to get org ID from cookies if not in memory
+		 */
+		_getOrgId() {
+			try {
+				return CC._ccInternal?.currentOrgId || document.cookie
+					.split('; ')
+					.find((row) => row.startsWith('lastActiveOrg='))
+					?.split('=')[1] || null;
+			} catch {
+				return null;
+			}
+		}
+
+		/**
 		 * Extracts conversation messages from memory, intercepted API trunk, or DOM fallback.
 		 */
-		extractConversation() {
+		async extractConversation() {
 			const activeConversationId = CC._ccInternal?.currentConversationId || this._getConversationIdFromUrl();
-			const cachedTree = (CC._ccInternal?.conversationTrees && activeConversationId) 
+			let cachedTree = (CC._ccInternal?.conversationTrees && activeConversationId) 
 				? CC._ccInternal.conversationTrees[activeConversationId] 
 				: null;
+
+			// If cachedTree is missing from memory (e.g. extension was reloaded without tab refresh),
+			// actively fetch the raw tree from Claude's internal API on-demand via the bridge!
+			if (!cachedTree && CC.bridge?.requestConversation && activeConversationId && activeConversationId.length > 5) {
+				const orgId = this._getOrgId();
+				if (orgId) {
+					try {
+						const res = await CC.bridge.requestConversation(orgId, activeConversationId);
+						if (res) {
+							cachedTree = res;
+							CC._ccInternal.conversationTrees[activeConversationId] = res;
+						}
+					} catch {
+						// proceed to DOM fallback
+					}
+				}
+			}
 
 			let messages = [];
 
@@ -49,8 +80,9 @@
 				};
 			}
 			if (!tokenStats || !tokenStats.total) {
-				// Estimate from scraped tokens if API metrics not available
-				const estTokens = CC.tokens?.countTokens ? messages.reduce((acc, msg) => acc + CC.tokens.countTokens(msg.text + (msg.thinking || '')), 0) : 0;
+				const estTokens = CC.tokens?.countTokens 
+					? messages.reduce((acc, msg) => acc + CC.tokens.countTokens(msg.text + (msg.thinking || '')), 0) 
+					: 0;
 				tokenStats = {
 					total: estTokens,
 					input: Math.floor(estTokens * 0.4),
@@ -106,26 +138,63 @@
 
 						if (part.type === 'text' && typeof part.text === 'string') {
 							text += (text ? '\n\n' : '') + part.text;
-						} else if ((part.type === 'thinking' || part.type === 'redacted_thinking')) {
+						} else if (part.type === 'thinking' || part.type === 'redacted_thinking') {
 							const thoughtText = part.thinking || part.text || part.data || '';
 							if (thoughtText) {
 								thinking += (thinking ? '\n\n' : '') + thoughtText;
 							}
 						} else if (part.type === 'tool_use') {
-							if (part.name === 'artifacts' || part.name?.includes('artifact')) {
+							const toolName = part.name || '';
+							const input = part.input || {};
+
+							// 1. Classic Artifacts
+							if (toolName === 'artifacts' || toolName.includes('artifact')) {
 								artifacts.push({
-									identifier: part.input?.id || `artifact-${index + 1}`,
-									title: part.input?.title || 'Generated Artifact',
-									type: part.input?.type || part.input?.language || 'code',
-									content: part.input?.content || (typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2))
+									identifier: input.id || `artifact-${index + 1}`,
+									title: input.title || input.name || 'Generated Artifact',
+									type: input.type || input.language || 'code',
+									content: input.content || (typeof input === 'string' ? input : JSON.stringify(input, null, 2))
 								});
-							} else {
-								// General tool use
+							} 
+							// 2. Created Files (create_file, write_file, file_editor, str_replace_editor, text_editor)
+							else if (
+								toolName === 'create_file' || 
+								toolName === 'write_file' || 
+								toolName === 'file_editor' || 
+								toolName === 'text_editor' || 
+								toolName === 'str_replace_editor' ||
+								toolName.includes('file') ||
+								input.path || 
+								input.file_path || 
+								input.file_text
+							) {
+								const filePath = input.path || input.file_path || input.file_name || input.title || `file-${index + 1}`;
+								const fileContent = input.file_text || input.content || input.new_str || input.text || (typeof input === 'string' ? input : JSON.stringify(input, null, 2));
+								const fileType = filePath.includes('.') ? filePath.split('.').pop() : 'text';
 								artifacts.push({
-									identifier: `tool-${part.name || 'use'}-${index + 1}`,
-									title: `Tool: ${part.name || 'execution'}`,
+									identifier: `file-${index + 1}-${artifacts.length + 1}`,
+									title: `📄 File: ${filePath}`,
+									type: fileType,
+									content: fileContent
+								});
+							}
+							// 3. Sandboxed Code Execution (bash, repl, code execution)
+							else if (toolName === 'bash' || toolName === 'repl' || toolName === 'execute' || toolName === 'code_execution') {
+								const code = input.command || input.code || input.script || (typeof input === 'string' ? input : JSON.stringify(input, null, 2));
+								artifacts.push({
+									identifier: `exec-${index + 1}-${artifacts.length + 1}`,
+									title: `💻 Command: ${toolName}`,
+									type: 'bash',
+									content: code
+								});
+							}
+							// 4. General Tools
+							else {
+								artifacts.push({
+									identifier: `tool-${toolName || 'use'}-${index + 1}`,
+									title: `Tool: ${toolName || 'execution'}`,
 									type: 'tool_use',
-									content: typeof part.input === 'string' ? part.input : JSON.stringify(part.input, null, 2)
+									content: typeof input === 'string' ? input : JSON.stringify(input, null, 2)
 								});
 							}
 						} else if (part.type === 'tool_result') {
@@ -133,6 +202,13 @@
 								const contentStr = typeof part.content === 'string' ? part.content : JSON.stringify(part.content, null, 2);
 								text += (text ? '\n\n' : '') + `**Tool Result:**\n\`\`\`\n${contentStr}\n\`\`\``;
 							}
+						} else if (part.type === 'document' || part.type === 'file') {
+							artifacts.push({
+								identifier: `doc-${index + 1}-${artifacts.length + 1}`,
+								title: `📄 ${part.title || part.name || 'Document'}`,
+								type: 'document',
+								content: part.text || part.content || ''
+							});
 						}
 					}
 				}
@@ -201,11 +277,12 @@
 					}
 
 					const artifacts = [];
-					const artifactEls = turn.querySelectorAll('[data-testid="artifact-button"], [class*="artifact"], pre code');
+					const artifactEls = turn.querySelectorAll('[data-testid="file-preview"], [data-testid="code-block"], [class*="FilePreview"], [class*="FileCard"], [data-testid="artifact-button"], [class*="artifact"], pre code');
 					artifactEls.forEach((art, aIdx) => {
+						const title = art.getAttribute('data-title') || art.getAttribute('data-artifact-title') || art.querySelector('[class*="title"], [class*="name"]')?.innerText || `Artifact ${aIdx + 1}`;
 						artifacts.push({
 							identifier: `artifact-${idx + 1}-${aIdx + 1}`,
-							title: art.getAttribute('data-title') || art.getAttribute('data-artifact-title') || `Artifact ${aIdx + 1}`,
+							title,
 							type: art.getAttribute('data-type') || 'code',
 							content: art.innerText.trim()
 						});
@@ -243,7 +320,7 @@
 				}
 
 				const artifacts = [];
-				const artifactEls = el.querySelectorAll('[data-testid="artifact-button"], pre code, [class*="artifact"]');
+				const artifactEls = el.querySelectorAll('[data-testid="file-preview"], [data-testid="code-block"], [class*="FilePreview"], [data-testid="artifact-button"], pre code, [class*="artifact"]');
 				artifactEls.forEach((art, aIdx) => {
 					artifacts.push({
 						identifier: `artifact-${idx + 1}-${aIdx + 1}`,
@@ -276,8 +353,8 @@
 		/**
 		 * Exports the extracted session to formatted Markdown (.md)
 		 */
-		exportToMarkdown() {
-			const data = this.extractConversation();
+		async exportToMarkdown() {
+			const data = await this.extractConversation();
 			this.lastExportData = data;
 
 			let md = `# ${data.title}\n\n`;
@@ -302,7 +379,7 @@
 
 				if (msg.artifacts && msg.artifacts.length > 0) {
 					msg.artifacts.forEach((art, aIdx) => {
-						md += `#### 📦 Artifact ${aIdx + 1}: ${art.title} (${art.type})\n`;
+						md += `#### 📦 ${art.title}\n`;
 						md += `\`\`\`${art.type === 'code' ? 'javascript' : art.type}\n`;
 						md += `${art.content}\n`;
 						md += `\`\`\`\n\n`;
@@ -323,8 +400,8 @@
 		/**
 		 * Exports the complete conversation tree with raw thinking & artifacts to JSON (.json)
 		 */
-		exportToJson() {
-			const data = this.extractConversation();
+		async exportToJson() {
+			const data = await this.extractConversation();
 			this.lastExportData = data;
 			const jsonStr = JSON.stringify(data, null, 2);
 			this._triggerDownload(`${this._sanitizeFilename(data.title)}.json`, jsonStr, 'application/json');

@@ -8,6 +8,7 @@
 		MODEL_SELECTOR_DROPDOWN: '[data-testid="model-selector-dropdown"], [class*="model-selector"], [aria-label*="Model"]',
 		CHAT_PROJECT_WRAPPER: '.chat-project-wrapper',
 		CHAT_INPUT_CONTAINER: '[data-testid="chat-input-row"], [class*="chat-input"], form fieldset',
+		ATTACH_BUTTON: '[data-testid="file-upload-button"], [data-testid="attach-button"], button[aria-label*="Add content" i], button[aria-label*="Attach" i], button[aria-label*="Upload" i], button[aria-label*="Add attachment" i], button[aria-label*="Open attachment" i]',
 		BRIDGE_SCRIPT_ID: 'cc-bridge-script',
 		USER_MESSAGES: '[data-testid="user-message"], .font-user-message, [data-message-author-role="user"], div[class*="font-user"]',
 		ASSISTANT_MESSAGES: '[data-testid="assistant-message"], .font-claude-message, [data-message-author-role="assistant"], div[class*="font-claude"], div.font-claude-message, div:has(> .font-claude-message), div[data-is-streaming], [class*="standard-message"]'

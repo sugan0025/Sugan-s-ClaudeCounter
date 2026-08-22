@@ -275,14 +275,21 @@
 		}
 
 		attachCatButton() {
-			// Find the + button or the left action bar inside Claude's chat input
-			const plusBtn = document.querySelector('[data-testid="file-upload-button"], button[aria-label*="Add"], button[aria-label*="Attach"], fieldset button:has(svg), .chat-input-area button');
-			const inputContainer = document.querySelector('[data-testid="chat-input-row"], fieldset, form, .chat-input-area');
+			// Find specifically the attachment/upload (+) button inside Claude's input bar
+			const selector = CC.DOM?.ATTACH_BUTTON || '[data-testid="file-upload-button"], [data-testid="attach-button"], button[aria-label*="Add content" i], button[aria-label*="Attach" i], button[aria-label*="Upload" i], button[aria-label*="Add attachment" i]';
+			const plusBtn = document.querySelector(selector);
+			
+			if (plusBtn && plusBtn.parentElement) {
+				// Only insert or move if it's not already the immediate next sibling
+				if (plusBtn.nextElementSibling !== this.catButton) {
+					plusBtn.insertAdjacentElement('afterend', this.catButton);
+				}
+				return;
+			}
 
-			if (plusBtn && plusBtn.parentElement && !plusBtn.parentElement.contains(this.catButton)) {
-				// Insert right next to the + button
-				plusBtn.insertAdjacentElement('afterend', this.catButton);
-			} else if (inputContainer && !inputContainer.contains(this.catButton)) {
+			// Fallback: bottom-left controls container in input row
+			const inputContainer = document.querySelector('[data-testid="chat-input-row"], fieldset > div, form > div');
+			if (inputContainer && !inputContainer.contains(this.catButton)) {
 				inputContainer.appendChild(this.catButton);
 			}
 		}
