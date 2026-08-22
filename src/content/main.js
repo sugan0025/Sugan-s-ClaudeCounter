@@ -155,6 +155,8 @@
 	function updateOrgIdIfNeeded(newOrgId) {
 		if (newOrgId && typeof newOrgId === 'string' && newOrgId !== currentOrgId) {
 			currentOrgId = newOrgId;
+			CC._ccInternal = CC._ccInternal || {};
+			CC._ccInternal.currentOrgId = currentOrgId;
 		}
 	}
 

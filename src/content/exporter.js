@@ -156,6 +156,10 @@
 									content: input.content || (typeof input === 'string' ? input : JSON.stringify(input, null, 2))
 								});
 							} 
+							else if (toolName === 'present_files') {
+								// Presentation marker - actual file contents are captured by create_file/write_file
+								continue;
+							}
 							// 2. Created Files (create_file, write_file, file_editor, str_replace_editor, text_editor)
 							else if (
 								toolName === 'create_file' || 
@@ -163,7 +167,7 @@
 								toolName === 'file_editor' || 
 								toolName === 'text_editor' || 
 								toolName === 'str_replace_editor' ||
-								toolName.includes('file') ||
+								(toolName.includes('file') && (input.path || input.file_path || input.file_text || input.content)) ||
 								input.path || 
 								input.file_path || 
 								input.file_text
