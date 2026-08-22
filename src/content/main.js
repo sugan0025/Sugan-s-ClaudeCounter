@@ -311,7 +311,9 @@
 	handleUrlChange();
 
 	function tick() {
-		ui.tick();
+		if (ui && typeof ui.tick === 'function') {
+			ui.tick();
+		}
 
 		// Refresh usage when a window ends (5h / 7d). SSE won't fire at rollover unless a message is sent.
 		const now = Date.now();
