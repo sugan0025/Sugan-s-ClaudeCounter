@@ -413,11 +413,12 @@
 		}
 
 		_sanitizeFilename(title) {
-			return (title || 'claude-session')
-				.replace(/[^a-zA-Z0-9-_\s]/g, '')
+			const clean = (title || '')
+				.replace(/[\\/:*?"<>|]/g, '')
 				.trim()
 				.replace(/\s+/g, '_')
-				.substring(0, 50);
+				.substring(0, 60);
+			return clean || 'claude-session-' + Date.now();
 		}
 
 		_triggerDownload(filename, content, mimeType) {

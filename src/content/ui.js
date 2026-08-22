@@ -165,7 +165,7 @@
 							<span style="display:inline-block; width:18px; height:18px; background-image:url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif'); background-size:contain;"></span>
 							<span>Claude Usage &amp; Telemetry</span>
 						</div>
-						<div class="cc-hud-model-tag" id="cc-model-tag">${this.modelName}</div>
+						<div class="cc-hud-model-tag" id="cc-model-tag">${(CC.escapeHtml ? CC.escapeHtml(this.modelName) : this.modelName)}</div>
 					</div>
 					<button class="cc-hud-close-btn" id="cc-hud-close" title="Close">✕</button>
 				</div>
