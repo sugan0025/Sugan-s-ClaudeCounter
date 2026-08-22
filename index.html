@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sugan's ClaudeCounter — Live AI Token &amp; Usage Telemetry HUD</title>
+  <title>Sugan's ClaudeCounter — Pure Frosted Liquid Glass Telemetry &amp; Dynamic Cat</title>
   <link rel="stylesheet" href="src/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -14,7 +14,7 @@
     }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #141413;
+      background: radial-gradient(circle at 50% 10%, #1e293b 0%, #0f172a 60%, #020617 100%);
       color: #ececec;
       min-height: 100vh;
       display: flex;
@@ -24,17 +24,19 @@
 
     /* Top Claude.ai Style Nav */
     .claude-nav {
-      height: 52px;
-      background: #141413;
+      height: 54px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
+      padding: 0 24px;
     }
     .claude-nav-title {
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       color: #94A3B8;
       display: flex;
       align-items: center;
@@ -54,11 +56,13 @@
     }
 
     .claude-greeting {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 400;
-      color: #f3f4f6;
+      color: #f8fafc;
       margin-bottom: 30px;
       font-family: Georgia, serif;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .claude-chat-history {
@@ -71,12 +75,14 @@
 
     .msg-user {
       align-self: flex-end;
-      background: #262624;
-      padding: 10px 16px;
-      border-radius: 16px 16px 4px 16px;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 18px;
+      border-radius: 18px 18px 4px 18px;
       font-size: 14px;
       color: #f8fafc;
       max-width: 80%;
+      backdrop-filter: blur(12px);
     }
 
     .msg-assistant {
@@ -91,12 +97,13 @@
     }
 
     .thinking-accordion {
-      background: rgba(139, 92, 246, 0.08);
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%);
       border-left: 3px solid #8B5CF6;
-      padding: 10px 14px;
-      border-radius: 4px;
+      border-radius: 6px;
+      padding: 12px 16px;
       font-size: 12px;
       color: #c4b5fd;
+      backdrop-filter: blur(8px);
     }
     .thinking-label {
       font-weight: 700;
@@ -104,16 +111,17 @@
       margin-bottom: 4px;
     }
 
-    /* Claude's Actual Input Box Replicated */
+    /* Claude's Actual Input Box with Liquid Glass Tint */
     .claude-input-container {
-      background: #1f1e1d;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
-      padding: 14px 16px 10px;
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 22px;
+      padding: 14px 16px 12px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
     }
 
     .claude-textarea {
@@ -125,7 +133,10 @@
       font-family: inherit;
       resize: none;
       width: 100%;
-      height: 40px;
+      height: 44px;
+    }
+    .claude-textarea::placeholder {
+      color: #64748b;
     }
 
     .claude-input-bottom-row {
@@ -137,7 +148,7 @@
     .input-left-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .plus-btn {
@@ -166,18 +177,22 @@
     }
 
     .model-selector-btn {
-      background: transparent;
-      border: none;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 3px 10px;
       color: #94A3B8;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 4px;
+      transition: all 150ms ease;
     }
     .model-selector-btn:hover {
       color: #fff;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .icon-btn {
@@ -186,6 +201,13 @@
       color: #94A3B8;
       cursor: pointer;
       font-size: 16px;
+    }
+
+    .demo-hint {
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -196,8 +218,8 @@
     <div class="claude-nav-title">
       <span>Greeting ˇ</span>
     </div>
-    <div style="font-size: 12px; color: #64748b;">
-      Sugan's ClaudeCounter HUD Active
+    <div style="font-size: 12px; color: var(--cc-cyan); font-weight: 600;">
+      ✨ Frosted Liquid Glass Telemetry HUD
     </div>
   </nav>
 
@@ -215,24 +237,24 @@
       <div class="msg-assistant">
         <div class="thinking-accordion">
           <div class="thinking-label">💭 Extended Thinking Process:</div>
-          <p>User initiated the conversation with a greeting. Ready to assist with architecture, coding, data analysis, or full-stack engineering.</p>
+          <p>User greeted the system. Preparing ultra-low latency response with telemetry emission.</p>
         </div>
-        <p>Hello Sugan! I'm ready. Let me know what you'd like to work on next!</p>
+        <p>Hello Sugan! I'm ready. Type below to watch your cat wake up and start typing in real-time!</p>
       </div>
     </div>
 
     <!-- Claude's Input Box with Cat Typing Button near + -->
     <div class="claude-input-container">
-      <textarea class="claude-textarea" placeholder="Write a message..."></textarea>
+      <textarea class="claude-textarea" placeholder="Type a message to see the cat start typing..."></textarea>
 
       <div class="claude-input-bottom-row">
         <div class="input-left-controls">
           <!-- + Button -->
           <button class="plus-btn" title="Add content">+</button>
 
-          <!-- Cat Typing Button Placed Right Next to + (No orange text) -->
-          <button class="cc-cat-toggle-btn" id="cat-button" title="View Claude Token & Rate Limit Usage">
-            <span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
+          <!-- Dynamic Cat Button (Static Idle ➔ Animated Typing on activity) -->
+          <button class="cc-cat-toggle-btn cc-cat-idle" id="cat-button" title="View Claude Token &amp; Rate Limit Usage">
+            <span class="cc-cat-icon"></span>
           </button>
         </div>
 
@@ -246,6 +268,10 @@
         </div>
       </div>
     </div>
+
+    <div class="demo-hint">
+      💡 <b>Cat Behavior</b>: Stays calm &amp; static when idle. Starts fast typing 🐱💻 whenever you type in the box or when Claude is writing!
+    </div>
   </main>
 
   <!-- Scripts -->
@@ -257,12 +283,12 @@
   <script>
     const ui = new CC.UI();
     ui.initialize();
-    ui.updateTokens(28400);
+    ui.updateTokens(2159);
     ui.updateUsage({
-      sessionUtilization: 0.624,
-      weeklyUtilization: 0.341,
-      sessionResetMs: Date.now() + 3.7 * 60 * 60 * 1000,
-      weeklyResetMs: Date.now() + 4.5 * 24 * 60 * 60 * 1000
+      sessionUtilization: 0.90,
+      weeklyUtilization: 0.03,
+      sessionResetMs: Date.now() + 4.18 * 60 * 60 * 1000,
+      weeklyResetMs: Date.now() + 5.16 * 24 * 60 * 60 * 1000
     });
 
     const catBtn = document.getElementById('cat-button');

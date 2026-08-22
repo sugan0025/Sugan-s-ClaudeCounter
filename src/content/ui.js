@@ -53,6 +53,7 @@
 
 			this.tickerInterval = null;
 			this.domObserver = null;
+			this.typingTimeout = null;
 		}
 
 		initialize() {
@@ -64,12 +65,12 @@
 
 		_initCatButton() {
 			this.catButton = document.createElement('button');
-			this.catButton.className = 'cc-cat-toggle-btn';
+			this.catButton.className = 'cc-cat-toggle-btn cc-cat-idle';
 			this.catButton.type = 'button';
 			this.catButton.title = 'Claude Live Token & Rate Limit Usage';
 
 			this.catButton.innerHTML = `
-				<span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
+				<span class="cc-cat-icon"></span>
 			`;
 
 			this.catButton.addEventListener('click', (e) => {
@@ -77,6 +78,39 @@
 				e.stopPropagation();
 				this.toggleSideHud();
 			});
+
+			this._setupActivityListeners();
+		}
+
+		setCatActive(durationMs = 2500) {
+			if (!this.catButton) return;
+			this.catButton.classList.remove('cc-cat-idle');
+			this.catButton.classList.add('cc-cat-active');
+
+			if (this.typingTimeout) clearTimeout(this.typingTimeout);
+			this.typingTimeout = setTimeout(() => {
+				this.setCatIdle();
+			}, durationMs);
+		}
+
+		setCatIdle() {
+			if (!this.catButton) return;
+			this.catButton.classList.remove('cc-cat-active');
+			this.catButton.classList.add('cc-cat-idle');
+		}
+
+		_setupActivityListeners() {
+			// Detect user typing in prompt box / textarea
+			const handleInputActivity = (e) => {
+				const target = e.target;
+				if (target && (target.tagName === 'TEXTAREA' || target.isContentEditable || target.classList?.contains('ProseMirror') || target.tagName === 'INPUT')) {
+					this.setCatActive(2500);
+				}
+			};
+
+			window.addEventListener('input', handleInputActivity, true);
+			window.addEventListener('keydown', handleInputActivity, true);
+			window.addEventListener('compositionstart', handleInputActivity, true);
 		}
 
 		_initSideHud() {
@@ -300,6 +334,16 @@
 				this.currentTokens = liveTokens;
 			}
 			this.attachCatButton();
+
+			// Detect if Claude is actively thinking, writing, or streaming response
+			const isClaudeActive = Boolean(
+				this.pendingCache ||
+				document.querySelector('[data-is-streaming="true"], [data-testid="stop-button"], button[aria-label*="Stop" i], [class*="streaming"], [data-testid="thinking-block"][data-state="open"]')
+			);
+			if (isClaudeActive) {
+				this.setCatActive(2200);
+			}
+
 			if (this.hudOpen) {
 				this._renderHudContent();
 			}

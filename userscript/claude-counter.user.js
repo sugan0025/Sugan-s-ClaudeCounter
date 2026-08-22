@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Sugan's ClaudeCounter HUD & Exporter
 // @namespace    https://github.com/sugan0025/Sugan-s-ClaudeCounter
-// @version      1.3.0
-// @description  Single-Card Real-Time Token & Usage HUD with Cat Button in Claude's Input Box and Full Session Thinking & Artifact Exporter (supports created files & sandboxed tools)
+// @version      1.4.0
+// @description  Pure Frosted Liquid Glass Usage HUD with Dynamic Interactive Typing Cat & Full Chat Exporter for Claude.ai
 // @match        https://claude.ai/*
 // @run-at       document-start
 // @grant        none
@@ -95,47 +95,50 @@
 		};
 	}
 
-	/* --- 2. CSS Styles --- */
+	/* --- 2. Pure Frosted Liquid Glass Styles --- */
 	const styles = `
 		:root {
 			--cc-amber: #E28743;
-			--cc-amber-glow: rgba(226, 135, 67, 0.35);
+			--cc-amber-glow: rgba(226, 135, 67, 0.45);
 			--cc-purple: #8B5CF6;
-			--cc-purple-glow: rgba(139, 92, 246, 0.35);
+			--cc-purple-glow: rgba(139, 92, 246, 0.4);
 			--cc-cyan: #38BDF8;
-			--cc-cyan-glow: rgba(56, 189, 248, 0.35);
+			--cc-cyan-glow: rgba(56, 189, 248, 0.4);
 			--cc-green: #10B981;
 			--cc-red: #EF4444;
-			--cc-dark-bg: rgba(15, 23, 42, 0.96);
-			--cc-dark-border: rgba(255, 255, 255, 0.12);
 			--cc-text-primary: #F8FAFC;
 			--cc-text-muted: #94A3B8;
-			--cc-radius-lg: 16px;
-			--cc-radius-md: 10px;
-			--cc-radius-sm: 6px;
+			--cc-radius-lg: 18px;
+			--cc-radius-md: 12px;
+			--cc-radius-sm: 8px;
 		}
 
 		.cc-cat-toggle-btn {
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 28px;
-			height: 28px;
-			background: transparent;
-			border: none;
+			width: 30px;
+			height: 30px;
+			background: rgba(255, 255, 255, 0.04);
+			border: 1px solid rgba(255, 255, 255, 0.1);
 			border-radius: 50%;
 			cursor: pointer;
 			user-select: none;
-			transition: all 180ms ease;
-			margin: 0 4px;
+			transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+			margin: 0 5px;
 			padding: 0;
 			z-index: 100;
 			flex-shrink: 0;
+			vertical-align: middle;
+			backdrop-filter: blur(12px);
+			-webkit-backdrop-filter: blur(12px);
 		}
 
 		.cc-cat-toggle-btn:hover {
-			background: rgba(255, 255, 255, 0.12);
-			transform: scale(1.15);
+			background: rgba(255, 255, 255, 0.14);
+			border-color: rgba(255, 255, 255, 0.25);
+			transform: scale(1.14);
+			box-shadow: 0 0 12px rgba(226, 135, 67, 0.35);
 		}
 
 		.cc-cat-icon {
@@ -146,6 +149,30 @@
 			background-repeat: no-repeat;
 			background-position: center;
 			border-radius: 4px;
+			transition: filter 200ms ease, transform 200ms ease;
+		}
+
+		.cc-cat-toggle-btn.cc-cat-idle .cc-cat-icon {
+			background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy_s.gif');
+			filter: saturate(0.85) brightness(0.95);
+			transform: scale(0.96);
+		}
+
+		.cc-cat-toggle-btn.cc-cat-active {
+			background: rgba(226, 135, 67, 0.16);
+			border-color: rgba(226, 135, 67, 0.45);
+			box-shadow: 0 0 14px var(--cc-amber-glow);
+		}
+
+		.cc-cat-toggle-btn.cc-cat-active .cc-cat-icon {
+			background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');
+			filter: saturate(1.1) brightness(1.05);
+			animation: cc-cat-typing-bounce 0.8s ease-in-out infinite;
+		}
+
+		@keyframes cc-cat-typing-bounce {
+			0%, 100% { transform: translateY(0) scale(1); }
+			50% { transform: translateY(-1.5px) scale(1.04); }
 		}
 
 		.cc-side-hud {
@@ -153,20 +180,27 @@
 			right: 24px;
 			bottom: 84px;
 			width: 360px;
-			background: var(--cc-dark-bg);
+			background: 
+				radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.12) 0%, transparent 40%),
+				radial-gradient(circle at 85% 90%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+				linear-gradient(135deg, rgba(20, 29, 47, 0.82) 0%, rgba(11, 16, 30, 0.92) 100%);
 			border-radius: var(--cc-radius-lg);
-			box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.25);
-			border: 1.5px solid rgba(56, 189, 248, 0.4);
-			backdrop-filter: blur(24px);
-			-webkit-backdrop-filter: blur(24px);
+			box-shadow: 
+				0 28px 60px rgba(0, 0, 0, 0.6),
+				inset 0 1px 1.5px rgba(255, 255, 255, 0.3),
+				inset 0 -1px 1px rgba(0, 0, 0, 0.4),
+				0 0 28px rgba(56, 189, 248, 0.18);
+			border: 1px solid rgba(255, 255, 255, 0.16);
+			backdrop-filter: blur(36px) saturate(210%);
+			-webkit-backdrop-filter: blur(36px) saturate(210%);
 			z-index: 99999;
 			display: flex;
 			flex-direction: column;
 			overflow: hidden;
 			opacity: 0;
-			transform: translateX(30px) scale(0.96);
+			transform: translateX(28px) scale(0.96);
 			pointer-events: none;
-			transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+			transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 			color: var(--cc-text-primary);
 		}
@@ -178,12 +212,23 @@
 		}
 
 		.cc-hud-top {
-			padding: 14px 18px 12px;
+			padding: 15px 18px 13px;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			background: rgba(0, 0, 0, 0.25);
-			border-bottom: 1px solid var(--cc-dark-border);
+			background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+			position: relative;
+		}
+
+		.cc-hud-top::after {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 10%;
+			right: 10%;
+			height: 1px;
+			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
 		}
 
 		.cc-hud-title {
@@ -193,25 +238,27 @@
 			display: flex;
 			align-items: center;
 			gap: 8px;
+			letter-spacing: -0.2px;
 		}
 
 		.cc-hud-model-tag {
 			font-size: 11px;
-			font-weight: 600;
+			font-weight: 700;
 			color: var(--cc-cyan);
-			background: rgba(56, 189, 248, 0.15);
-			padding: 2px 8px;
+			background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0.08) 100%);
+			padding: 2px 9px;
 			border-radius: 12px;
-			border: 1px solid rgba(56, 189, 248, 0.3);
-			margin-top: 4px;
+			border: 1px solid rgba(56, 189, 248, 0.4);
+			box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+			margin-top: 5px;
 			width: fit-content;
 		}
 
 		.cc-hud-close-btn {
-			background: transparent;
-			border: none;
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.1);
 			color: var(--cc-text-muted);
-			font-size: 18px;
+			font-size: 16px;
 			cursor: pointer;
 			width: 28px;
 			height: 28px;
@@ -219,23 +266,40 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			transition: all 180ms ease;
+		}
+
+		.cc-hud-close-btn:hover {
+			background: rgba(255, 255, 255, 0.16);
+			color: #fff;
+			transform: scale(1.08);
 		}
 
 		.cc-hud-body {
 			padding: 16px 18px;
 			display: flex;
 			flex-direction: column;
-			gap: 16px;
+			gap: 14px;
 		}
 
 		.cc-usage-block {
 			display: flex;
 			flex-direction: column;
-			gap: 6px;
-			background: rgba(255, 255, 255, 0.03);
-			padding: 12px;
+			gap: 7px;
+			background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%);
+			backdrop-filter: blur(14px);
+			padding: 12px 14px;
 			border-radius: var(--cc-radius-md);
-			border: 1px solid rgba(255, 255, 255, 0.06);
+			border: 1px solid rgba(255, 255, 255, 0.09);
+			box-shadow: 
+				inset 0 1px 0 rgba(255, 255, 255, 0.12),
+				0 4px 14px rgba(0, 0, 0, 0.22);
+			transition: border-color 200ms ease, transform 200ms ease;
+		}
+
+		.cc-usage-block:hover {
+			border-color: rgba(255, 255, 255, 0.18);
+			transform: translateY(-1px);
 		}
 
 		.cc-metric-header {
@@ -247,37 +311,38 @@
 
 		.cc-metric-name {
 			font-weight: 700;
-			color: #e2e8f0;
+			color: #f1f5f9;
 			display: flex;
 			align-items: center;
 			gap: 6px;
 		}
 
 		.cc-metric-value {
-			font-weight: 700;
+			font-weight: 800;
 			color: #fff;
 		}
 
 		.cc-meter-track {
 			width: 100%;
 			height: 8px;
-			background: rgba(255, 255, 255, 0.08);
+			background: rgba(0, 0, 0, 0.35);
 			border-radius: 4px;
 			overflow: hidden;
 			position: relative;
 			margin: 2px 0;
+			border: 1px solid rgba(255, 255, 255, 0.05);
 		}
 
 		.cc-meter-fill {
 			height: 100%;
 			border-radius: 4px;
-			transition: width 300ms ease;
+			transition: width 350ms cubic-bezier(0.4, 0, 0.2, 1);
 		}
 
-		.cc-meter-fill--cyan { background: linear-gradient(90deg, #0284C7, #38BDF8); box-shadow: 0 0 8px var(--cc-cyan-glow); }
-		.cc-meter-fill--amber { background: linear-gradient(90deg, #D97706, #F59E0B); box-shadow: 0 0 8px var(--cc-amber-glow); }
-		.cc-meter-fill--purple { background: linear-gradient(90deg, #7C3AED, #8B5CF6); box-shadow: 0 0 8px var(--cc-purple-glow); }
-		.cc-meter-fill--red { background: linear-gradient(90deg, #DC2626, #EF4444); }
+		.cc-meter-fill--cyan { background: linear-gradient(90deg, #0284C7, #38BDF8); box-shadow: 0 0 10px var(--cc-cyan-glow); }
+		.cc-meter-fill--amber { background: linear-gradient(90deg, #D97706, #F59E0B); box-shadow: 0 0 10px var(--cc-amber-glow); }
+		.cc-meter-fill--purple { background: linear-gradient(90deg, #7C3AED, #8B5CF6); box-shadow: 0 0 10px var(--cc-purple-glow); }
+		.cc-meter-fill--red { background: linear-gradient(90deg, #DC2626, #EF4444); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
 
 		.cc-metric-subtext {
 			display: flex;
@@ -298,8 +363,8 @@
 
 		.cc-hud-footer {
 			padding: 14px 18px;
-			background: rgba(0, 0, 0, 0.35);
-			border-top: 1px solid var(--cc-dark-border);
+			background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.45) 100%);
+			border-top: 1px solid rgba(255, 255, 255, 0.08);
 			display: flex;
 			flex-direction: column;
 			gap: 8px;
@@ -312,25 +377,44 @@
 			gap: 8px;
 			width: 100%;
 			padding: 10px 14px;
-			background: linear-gradient(135deg, #E28743, #D97706);
+			background: linear-gradient(135deg, #F59E0B 0%, #E28743 50%, #D97706 100%);
 			border: none;
 			border-radius: var(--cc-radius-md);
 			color: #ffffff;
 			font-size: 12px;
-			font-weight: 700;
+			font-weight: 800;
 			cursor: pointer;
-			box-shadow: 0 4px 12px var(--cc-amber-glow);
+			transition: all 200ms ease;
+			box-shadow: 
+				0 6px 18px var(--cc-amber-glow),
+				inset 0 1px 0 rgba(255, 255, 255, 0.35);
+		}
+
+		.cc-export-btn:hover {
+			filter: brightness(1.1);
+			box-shadow: 
+				0 8px 24px var(--cc-amber-glow),
+				inset 0 1px 0 rgba(255, 255, 255, 0.45);
+			transform: translateY(-1px);
 		}
 
 		.cc-export-json-btn {
-			background: transparent;
-			border: 1px solid var(--cc-dark-border);
+			background: rgba(255, 255, 255, 0.04);
+			border: 1px solid rgba(255, 255, 255, 0.1);
 			color: var(--cc-text-muted);
 			font-size: 11px;
 			font-weight: 600;
 			padding: 6px;
 			border-radius: var(--cc-radius-sm);
 			cursor: pointer;
+			transition: all 150ms ease;
+			backdrop-filter: blur(8px);
+		}
+
+		.cc-export-json-btn:hover {
+			color: #fff;
+			background: rgba(255, 255, 255, 0.08);
+			border-color: rgba(255, 255, 255, 0.25);
 		}
 	`;
 
@@ -338,7 +422,7 @@
 	styleTag.textContent = styles;
 	document.head.appendChild(styleTag);
 
-	/* --- 3. Full Session Exporter Engine (with created files & sandboxed tools) --- */
+	/* --- 3. Full Session Exporter Engine --- */
 	class ConversationExporter {
 		async extractConversation() {
 			const activeId = CC._ccInternal?.currentConversationId || this._getId();
@@ -398,13 +482,15 @@
 									type: input.type || 'code',
 									content: input.content || (typeof input === 'string' ? input : JSON.stringify(input, null, 2))
 								});
+							} else if (toolName === 'present_files') {
+								continue;
 							} else if (
 								toolName === 'create_file' || 
 								toolName === 'write_file' || 
 								toolName === 'file_editor' || 
 								toolName === 'text_editor' || 
 								toolName === 'str_replace_editor' ||
-								toolName.includes('file') ||
+								(toolName.includes('file') && (input.path || input.file_path || input.file_text || input.content)) ||
 								input.path || 
 								input.file_path || 
 								input.file_text
@@ -555,16 +641,43 @@
 
 	CC.Exporter = new ConversationExporter();
 
-	/* --- 4. HUD & Cat Button Controller --- */
+	/* --- 4. HUD & Dynamic Cat Controller --- */
 	let catButton = null;
 	let sideHud = null;
 	let hudOpen = false;
+	let typingTimeout = null;
 
 	let currentTokens = 0;
 	let sessionUtilization = 0.28;
 	let weeklyUtilization = 0.34;
 	let sessionResetMs = Date.now() + 3.7 * 60 * 60 * 1000;
 	let weeklyResetMs = Date.now() + 4.5 * 24 * 60 * 60 * 1000;
+
+	function setCatActive(durationMs = 2500) {
+		if (!catButton) return;
+		catButton.classList.remove('cc-cat-idle');
+		catButton.classList.add('cc-cat-active');
+
+		if (typingTimeout) clearTimeout(typingTimeout);
+		typingTimeout = setTimeout(() => {
+			if (catButton) {
+				catButton.classList.remove('cc-cat-active');
+				catButton.classList.add('cc-cat-idle');
+			}
+		}, durationMs);
+	}
+
+	function setupTypingListeners() {
+		const handleInput = (e) => {
+			const target = e.target;
+			if (target && (target.tagName === 'TEXTAREA' || target.isContentEditable || target.classList?.contains('ProseMirror') || target.tagName === 'INPUT')) {
+				setCatActive(2500);
+			}
+		};
+		window.addEventListener('input', handleInput, true);
+		window.addEventListener('keydown', handleInput, true);
+	}
+	setupTypingListeners();
 
 	function formatReset(ms) {
 		if (!ms) return 'Active';
@@ -684,11 +797,11 @@
 
 		if (!catButton) {
 			catButton = document.createElement('button');
-			catButton.className = 'cc-cat-toggle-btn';
+			catButton.className = 'cc-cat-toggle-btn cc-cat-idle';
 			catButton.type = 'button';
 			catButton.title = 'View Claude Token & Rate Limit Usage';
 			catButton.innerHTML = `
-				<span class="cc-cat-icon" style="background-image: url('https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif');"></span>
+				<span class="cc-cat-icon"></span>
 			`;
 			catButton.onclick = (e) => {
 				e.preventDefault();
@@ -711,6 +824,12 @@
 	setInterval(() => {
 		currentTokens = scrapeTokens();
 		injectCatButton();
+		
+		const isWriting = Boolean(document.querySelector('[data-is-streaming="true"], [data-testid="stop-button"], button[aria-label*="Stop" i]'));
+		if (isWriting) {
+			setCatActive(2200);
+		}
+
 		if (hudOpen) renderHud();
 	}, 1000);
 })();
