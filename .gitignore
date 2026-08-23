@@ -1,1 +1,22 @@
+# Dependencies & packages
+node_modules/
+package-lock.json
+
+# Environment variables & secrets
+.env
+.env.*
+*.pem
+*.key
+*.token
+
+# OS & Editor
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build & temporary files
+dist/
+build/
+*.tmp
+*.log
