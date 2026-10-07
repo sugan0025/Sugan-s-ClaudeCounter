@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="340" viewBox="0 0 1000 340" fill="none">
+  <defs>
+    <linearGradient id="claudeCardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e0f18" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#18152c" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="cb1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e28743"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="cb2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="cb3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="cb4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Frame Background -->
+  <rect width="1000" height="340" rx="16" fill="#080a12" stroke="#1f1e38" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="500" y="38" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">
+    🐱 Sugan's ClaudeCounter &amp; Telemetry HUD — Architectural Pipeline
+  </text>
+  <text x="500" y="58" font-family="'Segoe UI', Roboto, sans-serif" font-size="12" fill="#c4b5fd" text-anchor="middle">
+    Full End-to-End Client Pipeline from DOM Injection &amp; Frosted HUD to Real-Time Telemetry &amp; Thinking Exporter
+  </text>
+
+  <!-- Column 1: Client & DOM Injector -->
+  <g transform="translate(25, 80)">
+    <rect width="225" height="230" rx="12" fill="url(#claudeCardBg)" stroke="url(#cb1)" stroke-width="1.5"/>
+    <rect x="14" y="14" width="32" height="32" rx="8" fill="#e28743" fill-opacity="0.15"/>
+    <text x="30" y="36" font-size="18" text-anchor="middle">🐱</text>
+    <text x="54" y="28" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="#e28743">DOM &amp; Mascot</text>
+    <text x="54" y="42" font-family="'Segoe UI', sans-serif" font-size="10" fill="#fdba74">Prompt Box Dock</text>
+
+    <line x1="14" y1="56" x2="211" y2="56" stroke="#e28743" stroke-opacity="0.2" stroke-width="1"/>
+
+    <text x="14" y="78" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• MutationObserver Anchor</text>
+    <text x="14" y="102" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Docked Next to '+' Button</text>
+    <text x="14" y="126" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Zero-Jitter Drift Shield</text>
+    <text x="14" y="150" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Keyup &amp; Stream Listeners</text>
+    <text x="14" y="174" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Idle ↔ Typing ↔ Thinking</text>
+    <text x="14" y="200" font-family="'Segoe UI', sans-serif" font-size="10" fill="#e28743">→ Smooth 2.5s Decay Return</text>
+  </g>
+
+  <!-- Column 2: Liquid Glass HUD -->
+  <g transform="translate(265, 80)">
+    <rect width="225" height="230" rx="12" fill="url(#claudeCardBg)" stroke="url(#cb2)" stroke-width="1.5"/>
+    <rect x="14" y="14" width="32" height="32" rx="8" fill="#8b5cf6" fill-opacity="0.15"/>
+    <text x="30" y="36" font-size="18" text-anchor="middle">🧊</text>
+    <text x="54" y="28" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="#a78bfa">Liquid Glass HUD</text>
+    <text x="54" y="42" font-family="'Segoe UI', sans-serif" font-size="10" fill="#c4b5fd">Acrylic Visual Polish</text>
+
+    <line x1="14" y1="56" x2="211" y2="56" stroke="#8b5cf6" stroke-opacity="0.2" stroke-width="1"/>
+
+    <text x="14" y="78" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• 36px Blur Saturate(210%)</text>
+    <text x="14" y="102" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Specular Rim Light Gradient</text>
+    <text x="14" y="126" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Floating Non-Blocking Card</text>
+    <text x="14" y="150" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Sonnet 5 High Detection</text>
+    <text x="14" y="174" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Claude 3.7 Auto-Detect</text>
+    <text x="14" y="200" font-family="'Segoe UI', sans-serif" font-size="10" fill="#a78bfa">→ Zero UI Collisions</text>
+  </g>
+
+  <!-- Column 3: Telemetry & Token Scraper -->
+  <g transform="translate(505, 80)">
+    <rect width="225" height="230" rx="12" fill="url(#claudeCardBg)" stroke="url(#cb3)" stroke-width="1.5"/>
+    <rect x="14" y="14" width="32" height="32" rx="8" fill="#38bdf8" fill-opacity="0.15"/>
+    <text x="30" y="36" font-size="18" text-anchor="middle">⏱️</text>
+    <text x="54" y="28" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="#7dd3fc">Telemetry Engine</text>
+    <text x="54" y="42" font-family="'Segoe UI', sans-serif" font-size="10" fill="#bae6fd">Live Token &amp; Limits</text>
+
+    <line x1="14" y1="56" x2="211" y2="56" stroke="#38bdf8" stroke-opacity="0.2" stroke-width="1"/>
+
+    <text x="14" y="78" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• O200K BPE Token Scraper</text>
+    <text x="14" y="102" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• 200k Conv Sliding Meter</text>
+    <text x="14" y="126" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• 5-Min Cache TTL Ticker</text>
+    <text x="14" y="150" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• 5-Hour Session Rate Limit</text>
+    <text x="14" y="174" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• 7-Day Rolling Usage Stat</text>
+    <text x="14" y="200" font-family="'Segoe UI', sans-serif" font-size="10" fill="#7dd3fc">→ Proactive Limit Alerts</text>
+  </g>
+
+  <!-- Column 4: Session & Artifact Exporter -->
+  <g transform="translate(745, 80)">
+    <rect width="230" height="230" rx="12" fill="url(#claudeCardBg)" stroke="url(#cb4)" stroke-width="1.5"/>
+    <rect x="14" y="14" width="32" height="32" rx="8" fill="#ef4444" fill-opacity="0.15"/>
+    <text x="30" y="36" font-size="18" text-anchor="middle">📥</text>
+    <text x="54" y="28" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="#fca5a5">Resilient Exporter</text>
+    <text x="54" y="42" font-family="'Segoe UI', sans-serif" font-size="10" fill="#fecdd3">Thinking &amp; Artifacts</text>
+
+    <line x1="14" y1="56" x2="216" y2="56" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1"/>
+
+    <text x="14" y="78" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Halting Mid-Gen Recovery</text>
+    <text x="14" y="102" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Full Chain-of-Thought</text>
+    <text x="14" y="126" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Sandbox Tool Extractor</text>
+    <text x="14" y="150" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• File Path &amp; Content Stitch</text>
+    <text x="14" y="174" font-family="'Segoe UI', sans-serif" font-size="11" fill="#E2E8F0">• Clean Markdown &amp; JSON</text>
+    <text x="14" y="200" font-family="'Segoe UI', sans-serif" font-size="10" fill="#fca5a5">→ 100% Client-Side Privacy</text>
+  </g>
+</svg>

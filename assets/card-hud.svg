@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="230" viewBox="0 0 440 230">
+  <defs>
+    <linearGradient id="borderHud" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.95"/>
+      <stop offset="50%" style="stop-color:#38bdf8;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#c084fc;stop-opacity:0.5"/>
+    </linearGradient>
+    <filter id="glowHud">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#8b5cf6" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect x="2" y="2" width="436" height="226" rx="16" ry="16" fill="none" stroke="url(#borderHud)" stroke-width="2" filter="url(#glowHud)"/>
+  <rect x="4" y="4" width="432" height="222" rx="14" ry="14" fill="#0d1117" fill-opacity="0.92"/>
+  <rect x="4" y="4" width="432" height="222" rx="14" ry="14" fill="#1b122e" fill-opacity="0.45"/>
+  
+  <!-- Header -->
+  <rect x="22" y="22" width="4" height="38" rx="2" fill="#8b5cf6"/>
+  <text x="36" y="40" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff">🧊 Frosted Liquid Glass HUD</text>
+  <text x="36" y="58" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" font-weight="600" fill="#a78bfa">36PX ACRYLIC BLUR  •  SPECULAR RIM LIGHTING</text>
+  
+  <line x1="22" y1="72" x2="418" y2="72" stroke="#8b5cf6" stroke-opacity="0.25" stroke-width="1"/>
+  
+  <!-- Description -->
+  <text x="22" y="94" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="12" fill="#c9d1d9">Deep acrylic blur HUD displaying live token breakdown,</text>
+  <text x="22" y="112" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="12" fill="#c9d1d9">sliding 5-minute cache TTL, and 5h/7d session limit countdowns.</text>
+  
+  <!-- Tech Stack Pills -->
+  <rect x="22" y="132" width="84" height="22" rx="11" fill="#8b5cf6" fill-opacity="0.18"/>
+  <text x="32" y="147" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="10" font-weight="600" fill="#c4b5fd">Manifest V3</text>
+  <rect x="114" y="132" width="90" height="22" rx="11" fill="#38bdf8" fill-opacity="0.18"/>
+  <text x="124" y="147" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="10" font-weight="600" fill="#7dd3fc">Backdrop Filter</text>
+  <rect x="212" y="132" width="86" height="22" rx="11" fill="#e28743" fill-opacity="0.18"/>
+  <text x="222" y="147" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="10" font-weight="600" fill="#fdba74">Cache Timer</text>
+  <rect x="306" y="132" width="102" height="22" rx="11" fill="#10b981" fill-opacity="0.18"/>
+  <text x="316" y="147" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="10" font-weight="600" fill="#6ee7b7">Model Detector</text>
+
+  <!-- Metric badges -->
+  <text x="22" y="184" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#8b949e">⚡ <tspan fill="#ffffff" font-weight="600">200k</tspan> Window  •  ⏱️ <tspan fill="#ffffff" font-weight="600">5-Hour</tspan> Rolling  •  📅 <tspan fill="#ffffff" font-weight="600">7-Day</tspan> Usage</text>
+  <text x="22" y="206" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#38bdf8">▶ Auto-detects Sonnet 5 High &amp; Claude 3.7</text>
+</svg>

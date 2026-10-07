@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="250" viewBox="0 0 1200 250" fill="none">
+  <defs>
+    <linearGradient id="claudeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0d14" />
+      <stop offset="50%" stop-color="#121024" />
+      <stop offset="100%" stop-color="#1c1328" />
+    </linearGradient>
+    <linearGradient id="claudeBorder" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#e28743" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <pattern id="dotGridClaude" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#8b5cf6" fill-opacity="0.14" />
+    </pattern>
+    <filter id="glowClaude">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="250" rx="16" fill="url(#claudeBg)" />
+  <rect width="1200" height="250" fill="url(#dotGridClaude)" />
+
+  <!-- Outer Border Frame -->
+  <rect x="2" y="2" width="1196" height="246" rx="15" fill="none" stroke="url(#claudeBorder)" stroke-width="1.5" stroke-opacity="0.75"/>
+
+  <!-- Dynamic Glowing Swell Curves -->
+  <path d="M 0 185 C 280 130, 540 230, 840 150 C 1010 110, 1120 180, 1200 170 L 1200 250 L 0 250 Z" fill="#8b5cf6" fill-opacity="0.08"/>
+  <path d="M 0 200 C 320 150, 640 220, 940 165 C 1080 140, 1170 190, 1200 180" fill="none" stroke="#e28743" stroke-width="2" stroke-opacity="0.45" filter="url(#glowClaude)"/>
+  <path d="M 0 225 C 230 170, 590 235, 890 185 C 1050 160, 1140 205, 1200 195" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.35"/>
+
+  <!-- Logo Emblem Badge (Typing Cat with Glowing Orb) -->
+  <g transform="translate(60, 48)">
+    <rect width="72" height="72" rx="20" fill="#1e1838" stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.8"/>
+    <text x="36" y="47" font-size="36" text-anchor="middle">🐱</text>
+  </g>
+
+  <!-- Title & Description -->
+  <text x="156" y="80" font-family="'Segoe UI', Roboto, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="0.5">
+    Sugan's ClaudeCounter <tspan fill="#e28743" font-size="22" font-weight="600">&amp; Telemetry HUD</tspan>
+  </text>
+  <text x="156" y="112" font-family="'Segoe UI', Roboto, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#c4b5fd" letter-spacing="0.2">
+    Pure Frosted Liquid Glass HUD • Dynamic Typing Cat • Live 5h/7d Limits • Extended Thinking &amp; Artifact Exporter
+  </text>
+
+  <!-- Feature Metric Badges -->
+  <g transform="translate(156, 142)">
+    <rect width="185" height="32" rx="16" fill="#8b5cf6" fill-opacity="0.14" stroke="#8b5cf6" stroke-width="1"/>
+    <text x="92" y="21" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#c4b5fd" text-anchor="middle">⚡ Manifest V3 &amp; Script</text>
+  </g>
+
+  <g transform="translate(355, 142)">
+    <rect width="195" height="32" rx="16" fill="#e28743" fill-opacity="0.14" stroke="#e28743" stroke-width="1"/>
+    <text x="97" y="21" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#fdba74" text-anchor="middle">🧊 36px Frosted Glass HUD</text>
+  </g>
+
+  <g transform="translate(564, 142)">
+    <rect width="190" height="32" rx="16" fill="#38bdf8" fill-opacity="0.14" stroke="#38bdf8" stroke-width="1"/>
+    <text x="95" y="21" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#7dd3fc" text-anchor="middle">🐱 Typing Cat State Machine</text>
+  </g>
+
+  <g transform="translate(768, 142)">
+    <rect width="185" height="32" rx="16" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-width="1"/>
+    <text x="92" y="21" font-family="'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#6ee7b7" text-anchor="middle">📥 Thinking &amp; Artifact Export</text>
+  </g>
+</svg>
